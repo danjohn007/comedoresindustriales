@@ -1,0 +1,47 @@
+# System files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# PHP
+vendor/
+composer.lock
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/*
+!/tmp/.gitkeep
+
+# Configuration (if using environment-specific configs)
+# config/config.local.php
+
+# Uploads (if you add file upload functionality)
+# public/uploads/*
+# !public/uploads/.gitkeep
+
+# Cache
+cache/*
+!cache/.gitkeep
+
+# Node modules (if using npm for frontend tools)
+node_modules/
+package-lock.json
+
+# Build files
+dist/
+build/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
