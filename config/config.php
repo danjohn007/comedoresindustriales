@@ -7,9 +7,9 @@
 
 // Database Configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'comedores_industriales');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'majorbot_comedores');
+define('DB_USER', 'majorbot_comedores');
+define('DB_PASS', 'Danjohn007!');
 define('DB_CHARSET', 'utf8mb4');
 
 // Application Configuration
