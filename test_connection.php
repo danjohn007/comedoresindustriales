@@ -137,7 +137,7 @@
                     echo "<div class='mt-6 p-4 bg-green-100 border-l-4 border-green-500 rounded'>";
                     echo "<p class='text-green-800 font-bold'>✓ Todos los tests pasaron correctamente</p>";
                     echo "<p class='text-green-700 mt-2'>El sistema está listo para usar.</p>";
-                    echo "<a href='".BASE_URL."/public/index.php' class='inline-block mt-4 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition'>Ir al Sistema</a>";
+                    echo "<a href='".BASE_URL."/' class='inline-block mt-4 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition'>Ir al Sistema</a>";
                     echo "</div>";
                 } else {
                     echo "<div class='mt-6 p-4 bg-red-100 border-l-4 border-red-500 rounded'>";
