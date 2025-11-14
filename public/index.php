@@ -54,7 +54,7 @@ $router->post('/situations/delete/:id', 'SituationsController', 'delete');
 $router->get('/production', 'ProductionController', 'index');
 $router->get('/production/create', 'ProductionController', 'create');
 $router->post('/production/create', 'ProductionController', 'store');
-$router->get('/production/view/:id', 'ProductionController', 'view');
+$router->get('/production/view/:id', 'ProductionController', 'viewOrder');
 $router->get('/production/edit/:id', 'ProductionController', 'edit');
 $router->post('/production/update/:id', 'ProductionController', 'update');
 $router->post('/production/calculate-ingredients', 'ProductionController', 'calculateIngredients');
