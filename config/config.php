@@ -19,11 +19,6 @@ define('APP_VERSION', '1.0.0');
 // Timezone
 date_default_timezone_set('America/Mexico_City');
 
-// Session Configuration
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Set to 1 in production with HTTPS
-
 // Auto-detect URL Base
 function getBaseUrl() {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";

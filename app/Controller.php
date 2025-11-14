@@ -11,8 +11,13 @@ class Controller {
         require_once CONFIG_PATH . '/Database.php';
         $this->db = Database::getInstance()->getConnection();
         
-        // Start session if not started
+        // Configure and start session if not started
         if (session_status() === PHP_SESSION_NONE) {
+            // Configure session parameters before starting session
+            session_set_cookie_params([
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
             session_start();
         }
     }

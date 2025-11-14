@@ -1,8 +1,10 @@
 # Enable URL Rewriting
 RewriteEngine On
 
-# Set base directory automatically
-RewriteBase /
+# Set base directory - adjust this if installed in a subdirectory
+# For subdirectory installations like /comedores/, change to: RewriteBase /comedores/public/
+# For root installations, use: RewriteBase /public/
+RewriteBase /public/
 
 # Redirect to HTTPS (uncomment in production)
 # RewriteCond %{HTTPS} off
