@@ -27,7 +27,7 @@ class RecipesController extends Controller {
         $this->view('recipes/index', $data);
     }
     
-    public function view($id) {
+    public function viewRecipe($id) {
         $this->requireAuth();
         
         $stmt = $this->db->prepare("
@@ -97,7 +97,7 @@ class RecipesController extends Controller {
         $this->requireRole(['admin', 'chef']);
         
         $_SESSION['info'] = 'Funcionalidad de edición de recetas disponible';
-        $this->redirect('/recipes/view/' . $id);
+        $this->redirect('/recipes/viewRecipe/' . $id);
     }
     
     public function update($id) {
@@ -105,6 +105,6 @@ class RecipesController extends Controller {
         $this->requireRole(['admin', 'chef']);
         
         $_SESSION['info'] = 'Funcionalidad de actualización de recetas disponible';
-        $this->redirect('/recipes/view/' . $id);
+        $this->redirect('/recipes/viewRecipe/' . $id);
     }
 }

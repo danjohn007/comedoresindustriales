@@ -31,12 +31,7 @@
                 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <?php echo htmlspecialchars($setting['nombre']); ?>
-                        <?php if ($setting['descripcion']): ?>
-                            <span class="text-xs text-gray-500 font-normal">
-                                - <?php echo htmlspecialchars($setting['descripcion']); ?>
-                            </span>
-                        <?php endif; ?>
+                        <?php echo htmlspecialchars($setting['descripcion'] ?? $setting['clave'] ?? ''); ?>
                     </label>
                     
                     <?php if (in_array($setting['tipo_dato'], ['text', 'number', 'email'])): ?>
