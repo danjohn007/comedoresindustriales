@@ -1,47 +1,38 @@
-# Enable URL Rewriting
-RewriteEngine On
-
-# Set base directory - adjust this if installed in a subdirectory
-# For subdirectory installations like /comedores/, change to: RewriteBase /comedores/public/
-# For root installations, use: RewriteBase /public/
-RewriteBase /public/
-
-# Redirect to HTTPS (uncomment in production)
-# RewriteCond %{HTTPS} off
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-# Allow access to existing files and directories
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-
-# Route all other requests to index.php
-RewriteRule ^(.*)$ index.php [QSA,L]
+<IfModule mod_rewrite.c>
+    # Enable URL Rewriting
+    RewriteEngine On
+    
+    # Redirect to HTTPS (uncomment in production)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Allow access to existing files and directories
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Route all other requests to index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
 
 # Prevent access to sensitive files
 <FilesMatch "\.(htaccess|htpasswd|ini|log|sql)$">
-    Order Allow,Deny
-    Deny from all
+    <IfModule mod_version.c>
+        <IfVersion >= 2.4>
+            Require all denied
+        </IfVersion>
+        <IfVersion < 2.4>
+            Order Allow,Deny
+            Deny from all
+        </IfVersion>
+    </IfModule>
+    <IfModule !mod_version.c>
+        Require all denied
+    </IfModule>
 </FilesMatch>
 
-# Security headers
+# Security headers (optional - only if mod_headers is available)
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
-</IfModule>
-
-# Cache static resources
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType image/jpg "access plus 1 year"
-    ExpiresByType image/jpeg "access plus 1 year"
-    ExpiresByType image/gif "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType text/css "access plus 1 month"
-    ExpiresByType application/javascript "access plus 1 month"
-</IfModule>
-
-# Compress text files
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json
 </IfModule>

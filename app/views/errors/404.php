@@ -20,7 +20,7 @@
                 Lo sentimos, la página que estás buscando no existe o ha sido movida.
             </p>
             
-            <a href="<?php echo BASE_URL; ?>/public/" class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+            <a href="<?php echo BASE_URL; ?>/" class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
                 <i class="fas fa-home mr-2"></i> Volver al inicio
             </a>
         </div>
