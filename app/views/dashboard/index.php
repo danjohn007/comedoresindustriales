@@ -106,7 +106,9 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-4">
                 <i class="fas fa-chart-bar mr-2"></i> Asistencia Últimos 7 Días
             </h3>
-            <canvas id="attendanceChart" height="250"></canvas>
+            <div style="position: relative; height: 300px;">
+                <canvas id="attendanceChart"></canvas>
+            </div>
         </div>
         
         <!-- Upcoming Production Orders -->

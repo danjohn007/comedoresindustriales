@@ -193,7 +193,7 @@ class ProductionController extends Controller {
         }
     }
     
-    public function view($id) {
+    public function viewOrder($id) {
         $this->requireAuth();
         
         // Get order details
