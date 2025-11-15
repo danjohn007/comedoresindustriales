@@ -27,9 +27,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Resumen de ingresos, egresos y balance mensual por comedor.
             </p>
-            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg">
+            <a href="<?php echo Router::url('/financial/monthly-report'); ?>" class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-center">
                 Generar Reporte
-            </button>
+            </a>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
@@ -42,9 +42,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Detalle completo de todas las transacciones en un período específico.
             </p>
-            <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg">
+            <a href="<?php echo Router::url('/financial/account-statement'); ?>" class="block w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-center">
                 Generar Reporte
-            </button>
+            </a>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
@@ -57,9 +57,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Distribución de gastos e ingresos por categoría.
             </p>
-            <button class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg">
+            <a href="<?php echo Router::url('/financial/category-analysis'); ?>" class="block w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-center">
                 Generar Reporte
-            </button>
+            </a>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">

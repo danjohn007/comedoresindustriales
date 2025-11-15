@@ -389,4 +389,249 @@ class FinancialController extends Controller {
             error_log("Error updating budget: " . $e->getMessage());
         }
     }
+    
+    public function monthlyReport() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $anio = $_GET['anio'] ?? date('Y');
+        $mes = $_GET['mes'] ?? date('n');
+        $comedorId = $_GET['comedor_id'] ?? null;
+        
+        // Get comedores for filter
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        // Build report query
+        $query = "
+            SELECT 
+                c.id as comedor_id,
+                c.nombre as comedor,
+                SUM(CASE WHEN t.tipo = 'ingreso' THEN t.monto ELSE 0 END) as total_ingresos,
+                SUM(CASE WHEN t.tipo = 'egreso' THEN t.monto ELSE 0 END) as total_egresos,
+                SUM(CASE WHEN t.tipo = 'ingreso' THEN t.monto ELSE -t.monto END) as balance,
+                COUNT(t.id) as total_transacciones,
+                p.presupuesto_asignado,
+                p.presupuesto_gastado,
+                p.porcentaje_ejecutado,
+                p.estado as estado_presupuesto
+            FROM comedores c
+            LEFT JOIN transacciones_financieras t ON c.id = t.comedor_id 
+                AND YEAR(t.fecha_transaccion) = ? 
+                AND MONTH(t.fecha_transaccion) = ?
+            LEFT JOIN presupuestos p ON c.id = p.comedor_id 
+                AND p.anio = ? 
+                AND p.mes = ?
+            WHERE c.activo = 1
+        ";
+        
+        $params = [$anio, $mes, $anio, $mes];
+        
+        if ($comedorId) {
+            $query .= " AND c.id = ?";
+            $params[] = $comedorId;
+        }
+        
+        $query .= " GROUP BY c.id, c.nombre, p.presupuesto_asignado, p.presupuesto_gastado, p.porcentaje_ejecutado, p.estado
+                    ORDER BY c.nombre";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $reportData = $stmt->fetchAll();
+        
+        // Calculate totals
+        $totals = [
+            'ingresos' => 0,
+            'egresos' => 0,
+            'balance' => 0,
+            'presupuesto_asignado' => 0,
+            'presupuesto_gastado' => 0
+        ];
+        
+        foreach ($reportData as $row) {
+            $totals['ingresos'] += $row['total_ingresos'];
+            $totals['egresos'] += $row['total_egresos'];
+            $totals['balance'] += $row['balance'];
+            $totals['presupuesto_asignado'] += $row['presupuesto_asignado'] ?? 0;
+            $totals['presupuesto_gastado'] += $row['presupuesto_gastado'] ?? 0;
+        }
+        
+        $data = [
+            'title' => 'Reporte Mensual Financiero',
+            'reportData' => $reportData,
+            'totals' => $totals,
+            'comedores' => $comedores,
+            'filters' => [
+                'anio' => $anio,
+                'mes' => $mes,
+                'comedor_id' => $comedorId
+            ]
+        ];
+        
+        $this->view('financial/monthly_report', $data);
+    }
+    
+    public function accountStatement() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $startDate = $_GET['start_date'] ?? date('Y-m-01');
+        $endDate = $_GET['end_date'] ?? date('Y-m-d');
+        $comedorId = $_GET['comedor_id'] ?? null;
+        $tipo = $_GET['tipo'] ?? 'all';
+        
+        // Get comedores for filter
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        // Build transactions query
+        $query = "
+            SELECT 
+                t.id,
+                t.fecha_transaccion,
+                t.tipo,
+                t.concepto,
+                t.monto,
+                t.descripcion,
+                c.nombre as comedor,
+                cat.nombre as categoria,
+                u.nombre_completo as creado_por
+            FROM transacciones_financieras t
+            JOIN comedores c ON t.comedor_id = c.id
+            LEFT JOIN categorias_financieras cat ON t.categoria_id = cat.id
+            LEFT JOIN usuarios u ON t.creado_por = u.id
+            WHERE t.fecha_transaccion BETWEEN ? AND ?
+        ";
+        
+        $params = [$startDate, $endDate];
+        
+        if ($comedorId) {
+            $query .= " AND t.comedor_id = ?";
+            $params[] = $comedorId;
+        }
+        
+        if ($tipo !== 'all') {
+            $query .= " AND t.tipo = ?";
+            $params[] = $tipo;
+        }
+        
+        $query .= " ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $transactions = $stmt->fetchAll();
+        
+        // Calculate totals
+        $totals = [
+            'ingresos' => 0,
+            'egresos' => 0,
+            'balance' => 0,
+            'total_transacciones' => count($transactions)
+        ];
+        
+        foreach ($transactions as $tx) {
+            if ($tx['tipo'] === 'ingreso') {
+                $totals['ingresos'] += $tx['monto'];
+            } else if ($tx['tipo'] === 'egreso') {
+                $totals['egresos'] += $tx['monto'];
+            }
+        }
+        
+        $totals['balance'] = $totals['ingresos'] - $totals['egresos'];
+        
+        $data = [
+            'title' => 'Estado de Cuenta',
+            'transactions' => $transactions,
+            'totals' => $totals,
+            'comedores' => $comedores,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'comedor_id' => $comedorId,
+                'tipo' => $tipo
+            ]
+        ];
+        
+        $this->view('financial/account_statement', $data);
+    }
+    
+    public function categoryAnalysis() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $startDate = $_GET['start_date'] ?? date('Y-m-01');
+        $endDate = $_GET['end_date'] ?? date('Y-m-d');
+        $comedorId = $_GET['comedor_id'] ?? null;
+        
+        // Get comedores for filter
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        // Build analysis query
+        $query = "
+            SELECT 
+                cat.id as categoria_id,
+                cat.nombre as categoria,
+                cat.tipo,
+                COUNT(t.id) as cantidad_transacciones,
+                SUM(t.monto) as total_monto,
+                AVG(t.monto) as promedio_monto,
+                MIN(t.monto) as monto_minimo,
+                MAX(t.monto) as monto_maximo
+            FROM categorias_financieras cat
+            LEFT JOIN transacciones_financieras t ON cat.id = t.categoria_id
+                AND t.fecha_transaccion BETWEEN ? AND ?
+        ";
+        
+        $params = [$startDate, $endDate];
+        
+        if ($comedorId) {
+            $query .= " AND t.comedor_id = ?";
+            $params[] = $comedorId;
+        }
+        
+        $query .= " WHERE cat.activo = 1
+                    GROUP BY cat.id, cat.nombre, cat.tipo
+                    ORDER BY cat.tipo, total_monto DESC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $categoryData = $stmt->fetchAll();
+        
+        // Separate by type and calculate totals
+        $ingresos = [];
+        $egresos = [];
+        $totals = [
+            'ingresos' => 0,
+            'egresos' => 0,
+            'balance' => 0
+        ];
+        
+        foreach ($categoryData as $cat) {
+            if ($cat['tipo'] === 'ingreso') {
+                $ingresos[] = $cat;
+                $totals['ingresos'] += $cat['total_monto'] ?? 0;
+            } else {
+                $egresos[] = $cat;
+                $totals['egresos'] += $cat['total_monto'] ?? 0;
+            }
+        }
+        
+        $totals['balance'] = $totals['ingresos'] - $totals['egresos'];
+        
+        $data = [
+            'title' => 'Análisis por Categoría',
+            'ingresos' => $ingresos,
+            'egresos' => $egresos,
+            'totals' => $totals,
+            'comedores' => $comedores,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'comedor_id' => $comedorId
+            ]
+        ];
+        
+        $this->view('financial/category_analysis', $data);
+    }
 }
