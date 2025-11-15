@@ -82,6 +82,23 @@ class Controller {
     }
     
     /**
+     * Check if current user has read-only permissions (cliente role)
+     */
+    protected function isReadOnly() {
+        return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'cliente';
+    }
+    
+    /**
+     * Deny access for read-only users
+     */
+    protected function denyReadOnly() {
+        if ($this->isReadOnly()) {
+            $_SESSION['error'] = 'No tiene permisos para realizar esta acción';
+            $this->redirect('/dashboard');
+        }
+    }
+    
+    /**
      * Get current user data
      */
     protected function getCurrentUser() {
