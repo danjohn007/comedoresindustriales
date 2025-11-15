@@ -89,6 +89,18 @@ $router->post('/settings/update', 'SettingsController', 'update');
 $router->get('/settings/users', 'SettingsController', 'users');
 $router->get('/settings/comedores', 'SettingsController', 'comedores');
 $router->get('/settings/ingredients', 'SettingsController', 'ingredients');
+$router->post('/settings/ingredients/create', 'SettingsController', 'createIngredient');
+$router->post('/settings/ingredients/update', 'SettingsController', 'updateIngredient');
+$router->get('/settings/ingredients/get/:id', 'SettingsController', 'getIngredient');
+$router->post('/settings/ingredients/toggle', 'SettingsController', 'toggleIngredient');
+$router->post('/settings/ingredients/delete', 'SettingsController', 'deleteIngredient');
+
+// ========================================
+// PROFILE ROUTES
+// ========================================
+$router->get('/profile', 'ProfileController', 'index');
+$router->get('/profile/change-password', 'ProfileController', 'changePassword');
+$router->post('/profile/update-password', 'ProfileController', 'updatePassword');
 
 // ========================================
 // API ROUTES (REQ-API-001)
