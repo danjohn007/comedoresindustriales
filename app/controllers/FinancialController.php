@@ -679,6 +679,348 @@ class FinancialController extends Controller {
         $this->view('financial/account_statement', $data);
     }
     
+    public function budgetExecution() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $anio = $_GET['anio'] ?? date('Y');
+        $mes = $_GET['mes'] ?? null;
+        
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
+        // Get comedores for filter
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        // Build query for budget execution
+        $query = "
+            SELECT 
+                c.id as comedor_id,
+                c.nombre as comedor,
+                p.anio,
+                p.mes,
+                p.presupuesto_asignado,
+                p.presupuesto_gastado,
+                p.porcentaje_ejecutado,
+                p.estado,
+                (p.presupuesto_asignado - p.presupuesto_gastado) as presupuesto_disponible,
+                (SELECT SUM(t.monto) 
+                 FROM transacciones_financieras t 
+                 WHERE t.comedor_id = c.id 
+                   AND t.tipo = 'egreso'
+                   AND YEAR(t.fecha_transaccion) = p.anio
+                   AND MONTH(t.fecha_transaccion) = p.mes) as total_gastado_real
+            FROM presupuestos p
+            JOIN comedores c ON p.comedor_id = c.id
+            WHERE p.anio = ?
+        ";
+        
+        $params = [$anio];
+        
+        if ($mes) {
+            $query .= " AND p.mes = ?";
+            $params[] = $mes;
+        }
+        
+        // Count total records
+        $countQuery = "
+            SELECT COUNT(*) as total
+            FROM presupuestos p
+            WHERE p.anio = ?
+        ";
+        $countParams = [$anio];
+        
+        if ($mes) {
+            $countQuery .= " AND p.mes = ?";
+            $countParams[] = $mes;
+        }
+        
+        $stmt = $this->db->prepare($countQuery);
+        $stmt->execute($countParams);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
+        
+        $query .= " ORDER BY c.nombre, p.anio DESC, p.mes DESC
+                    LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $budgetData = $stmt->fetchAll();
+        
+        // Calculate totals
+        $totals = [
+            'presupuesto_asignado' => 0,
+            'presupuesto_gastado' => 0,
+            'presupuesto_disponible' => 0
+        ];
+        
+        foreach ($budgetData as $row) {
+            $totals['presupuesto_asignado'] += $row['presupuesto_asignado'] ?? 0;
+            $totals['presupuesto_gastado'] += $row['presupuesto_gastado'] ?? 0;
+            $totals['presupuesto_disponible'] += $row['presupuesto_disponible'] ?? 0;
+        }
+        
+        $data = [
+            'title' => 'Ejecución Presupuestal',
+            'budgetData' => $budgetData,
+            'totals' => $totals,
+            'comedores' => $comedores,
+            'filters' => [
+                'anio' => $anio,
+                'mes' => $mes
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
+            ]
+        ];
+        
+        $this->view('financial/budget_execution', $data);
+    }
+    
+    public function budgetAlerts() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
+        // Get budget alerts (exceeded or near exceeding)
+        $query = "
+            SELECT 
+                c.id as comedor_id,
+                c.nombre as comedor,
+                p.anio,
+                p.mes,
+                p.presupuesto_asignado,
+                p.presupuesto_gastado,
+                p.porcentaje_ejecutado,
+                p.estado,
+                (p.presupuesto_asignado - p.presupuesto_gastado) as presupuesto_disponible
+            FROM presupuestos p
+            JOIN comedores c ON p.comedor_id = c.id
+            WHERE p.porcentaje_ejecutado >= 90
+               OR p.estado = 'excedido'
+            ORDER BY p.porcentaje_ejecutado DESC, c.nombre
+        ";
+        
+        // Count total alerts
+        $countQuery = "
+            SELECT COUNT(*) as total
+            FROM presupuestos p
+            WHERE p.porcentaje_ejecutado >= 90
+               OR p.estado = 'excedido'
+        ";
+        
+        $stmt = $this->db->query($countQuery);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
+        
+        $query .= " LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
+        
+        $stmt = $this->db->query($query);
+        $alerts = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Alertas Presupuestales',
+            'alerts' => $alerts,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
+            ]
+        ];
+        
+        $this->view('financial/budget_alerts', $data);
+    }
+    
+    public function exportData() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $startDate = $_GET['start_date'] ?? date('Y-m-01');
+        $endDate = $_GET['end_date'] ?? date('Y-m-d');
+        $type = $_GET['type'] ?? 'transactions';
+        
+        // Get comedores for filter
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Exportar Datos Financieros',
+            'comedores' => $comedores,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'type' => $type
+            ]
+        ];
+        
+        $this->view('financial/export_data', $data);
+    }
+    
+    public function downloadExport() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $startDate = $_POST['start_date'] ?? date('Y-m-01');
+        $endDate = $_POST['end_date'] ?? date('Y-m-d');
+        $type = $_POST['type'] ?? 'transactions';
+        $comedorId = $_POST['comedor_id'] ?? null;
+        
+        // Set headers for Excel download
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment;filename="reporte_financiero_' . date('Y-m-d') . '.xls"');
+        header('Cache-Control: max-age=0');
+        
+        echo '<html xmlns:x="urn:schemas-microsoft-com:office:excel">';
+        echo '<head>';
+        echo '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
+        echo '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>';
+        echo '<x:Name>Reporte</x:Name>';
+        echo '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
+        echo '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
+        echo '</head>';
+        echo '<body>';
+        
+        if ($type === 'transactions') {
+            // Export transactions
+            $query = "
+                SELECT 
+                    t.fecha_transaccion,
+                    c.nombre as comedor,
+                    t.tipo,
+                    t.concepto,
+                    cat.nombre as categoria,
+                    t.monto,
+                    t.descripcion,
+                    u.nombre_completo as creado_por
+                FROM transacciones_financieras t
+                JOIN comedores c ON t.comedor_id = c.id
+                LEFT JOIN categorias_financieras cat ON t.categoria_id = cat.id
+                LEFT JOIN usuarios u ON t.creado_por = u.id
+                WHERE t.fecha_transaccion BETWEEN ? AND ?
+            ";
+            
+            $params = [$startDate, $endDate];
+            
+            if ($comedorId) {
+                $query .= " AND t.comedor_id = ?";
+                $params[] = $comedorId;
+            }
+            
+            $query .= " ORDER BY t.fecha_transaccion DESC";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            $data = $stmt->fetchAll();
+            
+            echo '<table border="1">';
+            echo '<thead>';
+            echo '<tr style="background-color: #4472C4; color: white; font-weight: bold;">';
+            echo '<th>Fecha</th>';
+            echo '<th>Comedor</th>';
+            echo '<th>Tipo</th>';
+            echo '<th>Concepto</th>';
+            echo '<th>Categoría</th>';
+            echo '<th>Monto</th>';
+            echo '<th>Descripción</th>';
+            echo '<th>Creado Por</th>';
+            echo '</tr>';
+            echo '</thead>';
+            echo '<tbody>';
+            
+            foreach ($data as $row) {
+                echo '<tr>';
+                echo '<td>' . htmlspecialchars($row['fecha_transaccion']) . '</td>';
+                echo '<td>' . htmlspecialchars($row['comedor']) . '</td>';
+                echo '<td>' . htmlspecialchars($row['tipo']) . '</td>';
+                echo '<td>' . htmlspecialchars($row['concepto']) . '</td>';
+                echo '<td>' . htmlspecialchars($row['categoria'] ?? '') . '</td>';
+                echo '<td>' . number_format($row['monto'], 2) . '</td>';
+                echo '<td>' . htmlspecialchars($row['descripcion'] ?? '') . '</td>';
+                echo '<td>' . htmlspecialchars($row['creado_por'] ?? '') . '</td>';
+                echo '</tr>';
+            }
+            
+            echo '</tbody>';
+            echo '</table>';
+            
+        } elseif ($type === 'budgets') {
+            // Export budgets
+            $query = "
+                SELECT 
+                    c.nombre as comedor,
+                    p.anio,
+                    p.mes,
+                    p.presupuesto_asignado,
+                    p.presupuesto_gastado,
+                    p.porcentaje_ejecutado,
+                    p.estado,
+                    (p.presupuesto_asignado - p.presupuesto_gastado) as disponible
+                FROM presupuestos p
+                JOIN comedores c ON p.comedor_id = c.id
+                WHERE p.anio >= YEAR(?) AND p.anio <= YEAR(?)
+            ";
+            
+            $params = [$startDate, $endDate];
+            
+            if ($comedorId) {
+                $query .= " AND p.comedor_id = ?";
+                $params[] = $comedorId;
+            }
+            
+            $query .= " ORDER BY c.nombre, p.anio DESC, p.mes DESC";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            $data = $stmt->fetchAll();
+            
+            echo '<table border="1">';
+            echo '<thead>';
+            echo '<tr style="background-color: #4472C4; color: white; font-weight: bold;">';
+            echo '<th>Comedor</th>';
+            echo '<th>Año</th>';
+            echo '<th>Mes</th>';
+            echo '<th>Presupuesto Asignado</th>';
+            echo '<th>Presupuesto Gastado</th>';
+            echo '<th>Porcentaje Ejecutado</th>';
+            echo '<th>Disponible</th>';
+            echo '<th>Estado</th>';
+            echo '</tr>';
+            echo '</thead>';
+            echo '<tbody>';
+            
+            foreach ($data as $row) {
+                echo '<tr>';
+                echo '<td>' . htmlspecialchars($row['comedor']) . '</td>';
+                echo '<td>' . $row['anio'] . '</td>';
+                echo '<td>' . $row['mes'] . '</td>';
+                echo '<td>' . number_format($row['presupuesto_asignado'], 2) . '</td>';
+                echo '<td>' . number_format($row['presupuesto_gastado'], 2) . '</td>';
+                echo '<td>' . number_format($row['porcentaje_ejecutado'], 2) . '%</td>';
+                echo '<td>' . number_format($row['disponible'], 2) . '</td>';
+                echo '<td>' . htmlspecialchars($row['estado']) . '</td>';
+                echo '</tr>';
+            }
+            
+            echo '</tbody>';
+            echo '</table>';
+        }
+        
+        echo '</body>';
+        echo '</html>';
+        exit;
+    }
+    
     public function categoryAnalysis() {
         $this->requireAuth();
         $this->requireRole(['admin', 'coordinador']);
