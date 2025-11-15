@@ -106,7 +106,8 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Tipo</label>
-                    <select name="tipo" required class="w-full px-3 py-2 border rounded-lg">
+                    <select name="tipo" id="tipo" required class="w-full px-3 py-2 border rounded-lg" onchange="filterCategories()">
+                        <option value="">Seleccione un tipo</option>
                         <option value="ingreso">Ingreso</option>
                         <option value="egreso">Egreso</option>
                     </select>
@@ -116,8 +117,15 @@
                     <input type="text" name="concepto" required class="w-full px-3 py-2 border rounded-lg">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Categoría</label>
-                    <input type="text" name="categoria" class="w-full px-3 py-2 border rounded-lg" placeholder="Ej: Ingredientes, Servicios, etc.">
+                    <label class="block text-sm font-medium mb-1">Categoría <a href="<?php echo Router::url('/financial/categories'); ?>" class="text-blue-600 text-xs ml-2" target="_blank">(Ver catálogo)</a></label>
+                    <select name="categoria_id" id="categoria_id" class="w-full px-3 py-2 border rounded-lg">
+                        <option value="">Seleccione una categoría...</option>
+                        <?php foreach ($categorias as $cat): ?>
+                        <option value="<?php echo $cat['id']; ?>" data-tipo="<?php echo $cat['tipo']; ?>">
+                            <?php echo htmlspecialchars($cat['nombre']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Monto</label>
@@ -150,6 +158,33 @@ function closeCreateModal() {
     document.getElementById('createModal').classList.add('hidden');
     document.getElementById('createModal').classList.remove('flex');
     document.getElementById('createTransactionForm').reset();
+    filterCategories();
+}
+
+function filterCategories() {
+    const tipo = document.getElementById('tipo').value;
+    const categoriaSelect = document.getElementById('categoria_id');
+    const options = categoriaSelect.querySelectorAll('option');
+    
+    options.forEach(option => {
+        if (option.value === '') {
+            option.style.display = '';
+            return;
+        }
+        
+        const optionTipo = option.getAttribute('data-tipo');
+        if (!tipo || optionTipo === tipo) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+    
+    // Reset selection if current selection is hidden
+    const selectedOption = categoriaSelect.options[categoriaSelect.selectedIndex];
+    if (selectedOption && selectedOption.style.display === 'none') {
+        categoriaSelect.value = '';
+    }
 }
 
 async function createTransaction(event) {

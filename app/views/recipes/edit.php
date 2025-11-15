@@ -80,32 +80,59 @@
                 
                 <!-- Ingredientes Section -->
                 <div class="pt-6 border-t">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-carrot mr-2"></i> Ingredientes
-                        <span class="text-sm text-gray-500 font-normal">(<?php echo count($recetaIngredientes); ?> ingredientes)</span>
-                    </h3>
-                    
-                    <?php if (!empty($recetaIngredientes)): ?>
-                    <div class="space-y-2 mb-4">
-                        <?php foreach ($recetaIngredientes as $ing): ?>
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <span class="font-medium text-gray-800"><?php echo htmlspecialchars($ing['ingrediente_nombre']); ?></span>
-                                <span class="text-sm text-gray-600 ml-2">
-                                    <?php echo number_format($ing['cantidad'], 2); ?> <?php echo htmlspecialchars($ing['unidad']); ?>
-                                </span>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-carrot mr-2"></i> Ingredientes
+                            <span class="text-sm text-gray-500 font-normal">(<?php echo count($recetaIngredientes); ?> ingredientes)</span>
+                        </h3>
+                        <button type="button" onclick="addIngredient()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm">
+                            <i class="fas fa-plus mr-2"></i> Agregar Ingrediente
+                        </button>
                     </div>
-                    <?php else: ?>
-                    <p class="text-gray-500 text-sm italic mb-4">No hay ingredientes asociados a esta receta</p>
-                    <?php endif; ?>
                     
-                    <p class="text-sm text-blue-600">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Para modificar ingredientes, contacte al administrador o use el módulo de gestión de ingredientes.
-                    </p>
+                    <div id="ingredientes-container" class="space-y-3">
+                        <?php if (!empty($recetaIngredientes)): ?>
+                            <?php foreach ($recetaIngredientes as $idx => $ing): ?>
+                            <div class="flex gap-3 items-start p-3 bg-gray-50 rounded-lg" id="ingrediente-existing-<?php echo $ing['id']; ?>">
+                                <input type="hidden" name="ingredientes_existentes[<?php echo $ing['id']; ?>][id]" value="<?php echo $ing['id']; ?>">
+                                <div class="flex-1">
+                                    <select name="ingredientes_existentes[<?php echo $ing['id']; ?>][ingrediente_id]" required
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                        <?php foreach ($ingredientes as $ingrediente): ?>
+                                        <option value="<?php echo $ingrediente['id']; ?>" <?php echo $ingrediente['id'] == $ing['ingrediente_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($ingrediente['nombre']); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="w-32">
+                                    <input type="number" name="ingredientes_existentes[<?php echo $ing['id']; ?>][cantidad]" 
+                                           value="<?php echo $ing['cantidad']; ?>" placeholder="Cantidad" step="0.001" min="0" required
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="w-24">
+                                    <select name="ingredientes_existentes[<?php echo $ing['id']; ?>][unidad]" required
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                        <option value="kg" <?php echo $ing['unidad'] == 'kg' ? 'selected' : ''; ?>>kg</option>
+                                        <option value="g" <?php echo $ing['unidad'] == 'g' ? 'selected' : ''; ?>>g</option>
+                                        <option value="l" <?php echo $ing['unidad'] == 'l' ? 'selected' : ''; ?>>l</option>
+                                        <option value="ml" <?php echo $ing['unidad'] == 'ml' ? 'selected' : ''; ?>>ml</option>
+                                        <option value="pzas" <?php echo $ing['unidad'] == 'pzas' ? 'selected' : ''; ?>>pzas</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <input type="text" name="ingredientes_existentes[<?php echo $ing['id']; ?>][notas]" 
+                                           value="<?php echo htmlspecialchars($ing['notas'] ?? ''); ?>" placeholder="Notas (opcional)"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button type="button" onclick="removeExistingIngredient(<?php echo $ing['id']; ?>)" 
+                                        class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 
                 <div class="pt-6 border-t flex justify-end space-x-4">
@@ -121,5 +148,74 @@
         </div>
     </div>
 </div>
+
+<script>
+    let ingredienteCounter = 0;
+    const ingredientes = <?php echo json_encode($ingredientes); ?>;
+    
+    function addIngredient() {
+        const container = document.getElementById('ingredientes-container');
+        const div = document.createElement('div');
+        div.className = 'flex gap-3 items-start p-3 bg-gray-50 rounded-lg';
+        div.id = `ingrediente-new-${ingredienteCounter}`;
+        
+        div.innerHTML = `
+            <div class="flex-1">
+                <select name="ingredientes_nuevos[${ingredienteCounter}][ingrediente_id]" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">Seleccione ingrediente...</option>
+                    ${ingredientes.map(ing => `<option value="${ing.id}">${ing.nombre}</option>`).join('')}
+                </select>
+            </div>
+            <div class="w-32">
+                <input type="number" name="ingredientes_nuevos[${ingredienteCounter}][cantidad]" 
+                       placeholder="Cantidad" step="0.001" min="0" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="w-24">
+                <select name="ingredientes_nuevos[${ingredienteCounter}][unidad]" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="l">l</option>
+                    <option value="ml">ml</option>
+                    <option value="pzas">pzas</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <input type="text" name="ingredientes_nuevos[${ingredienteCounter}][notas]" 
+                       placeholder="Notas (opcional)"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="button" onclick="removeNewIngredient(${ingredienteCounter})" 
+                    class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        container.appendChild(div);
+        ingredienteCounter++;
+    }
+    
+    function removeNewIngredient(id) {
+        const element = document.getElementById(`ingrediente-new-${id}`);
+        if (element) {
+            element.remove();
+        }
+    }
+    
+    function removeExistingIngredient(id) {
+        const element = document.getElementById(`ingrediente-existing-${id}`);
+        if (element && confirm('¿Está seguro de eliminar este ingrediente?')) {
+            // Add hidden input to mark for deletion
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `ingredientes_eliminar[${id}]`;
+            input.value = id;
+            document.querySelector('form').appendChild(input);
+            element.remove();
+        }
+    }
+</script>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>

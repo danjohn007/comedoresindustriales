@@ -159,11 +159,18 @@
                 </div>
                 
                 <div>
-                    <label for="proveedor" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="proveedor_id" class="block text-sm font-medium text-gray-700 mb-2">
                         Proveedor
                     </label>
-                    <input type="text" id="proveedor" name="proveedor"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <select id="proveedor_id" name="proveedor_id"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Seleccione un proveedor...</option>
+                        <?php if (!empty($proveedores)): ?>
+                            <?php foreach ($proveedores as $prov): ?>
+                                <option value="<?php echo $prov['id']; ?>"><?php echo htmlspecialchars($prov['nombre']); ?></option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
                 </div>
                 
                 <div class="pt-4 flex justify-end space-x-4">
@@ -219,7 +226,7 @@
                 document.getElementById('nombre').value = ing.nombre;
                 document.getElementById('unidad_medida').value = ing.unidad_medida;
                 document.getElementById('costo_unitario').value = ing.costo_unitario;
-                document.getElementById('proveedor').value = ing.proveedor || '';
+                document.getElementById('proveedor_id').value = ing.proveedor_id || '';
                 document.getElementById('ingredientModal').classList.remove('hidden');
             } else {
                 alert('Error: ' + result.error);
