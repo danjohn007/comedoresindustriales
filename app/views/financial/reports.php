@@ -72,9 +72,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Comparativo entre presupuesto asignado y ejecutado.
             </p>
-            <button class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg">
+            <a href="<?php echo Router::url('/financial/budget-execution'); ?>" class="block w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg text-center">
                 Generar Reporte
-            </button>
+            </a>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
@@ -87,9 +87,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Comedores con presupuesto excedido o próximo a exceder.
             </p>
-            <button class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg">
+            <a href="<?php echo Router::url('/financial/budget-alerts'); ?>" class="block w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-center">
                 Ver Alertas
-            </button>
+            </a>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
@@ -102,9 +102,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Exportar datos financieros a Excel para análisis externo.
             </p>
-            <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg">
+            <a href="<?php echo Router::url('/financial/export-data'); ?>" class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-center">
                 Exportar
-            </button>
+            </a>
         </div>
     </div>
     

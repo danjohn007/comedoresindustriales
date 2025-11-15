@@ -120,6 +120,8 @@ $router->post('/settings/ingredients/delete', 'SettingsController', 'deleteIngre
 $router->get('/profile', 'ProfileController', 'index');
 $router->get('/profile/change-password', 'ProfileController', 'changePassword');
 $router->post('/profile/update-password', 'ProfileController', 'updatePassword');
+$router->post('/profile/upload-image', 'ProfileController', 'uploadImage');
+$router->post('/profile/delete-image', 'ProfileController', 'deleteImage');
 
 // ========================================
 // FINANCIAL ROUTES
@@ -139,6 +141,10 @@ $router->post('/financial/categories/create', 'FinancialController', 'createCate
 $router->get('/financial/categories/get/:id', 'FinancialController', 'getCategory');
 $router->post('/financial/categories/update', 'FinancialController', 'updateCategory');
 $router->post('/financial/categories/toggle', 'FinancialController', 'toggleCategory');
+$router->get('/financial/budget-execution', 'FinancialController', 'budgetExecution');
+$router->get('/financial/budget-alerts', 'FinancialController', 'budgetAlerts');
+$router->get('/financial/export-data', 'FinancialController', 'exportData');
+$router->post('/financial/download-export', 'FinancialController', 'downloadExport');
 
 // ========================================
 // SUPPLIERS ROUTES

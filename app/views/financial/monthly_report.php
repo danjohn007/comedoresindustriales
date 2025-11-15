@@ -133,13 +133,13 @@
                                     <div class="text-xs text-gray-500"><?php echo $row['total_transacciones']; ?> transacciones</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 font-medium">
-                                    $<?php echo number_format($row['total_ingresos'], 2); ?>
+                                    $<?php echo number_format($row['total_ingresos'] ?? 0, 2); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-red-600 font-medium">
-                                    $<?php echo number_format($row['total_egresos'], 2); ?>
+                                    $<?php echo number_format($row['total_egresos'] ?? 0, 2); ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium <?php echo $row['balance'] >= 0 ? 'text-blue-600' : 'text-red-600'; ?>">
-                                    $<?php echo number_format($row['balance'], 2); ?>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium <?php echo ($row['balance'] ?? 0) >= 0 ? 'text-blue-600' : 'text-red-600'; ?>">
+                                    $<?php echo number_format($row['balance'] ?? 0, 2); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-700">
                                     <?php echo $row['presupuesto_asignado'] ? '$' . number_format($row['presupuesto_asignado'], 2) : '-'; ?>
@@ -174,6 +174,31 @@
                     <?php endif; ?>
                 </tbody>
             </table>
+            
+            <!-- Pagination -->
+            <?php if (isset($pagination) && $pagination['total_pages'] > 1): ?>
+            <div class="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
+                <div class="text-sm text-gray-700">
+                    Mostrando página <?php echo $pagination['current_page']; ?> de <?php echo $pagination['total_pages']; ?>
+                    (<?php echo $pagination['total_records']; ?> comedores en total)
+                </div>
+                <div class="flex space-x-2">
+                    <?php if ($pagination['current_page'] > 1): ?>
+                        <a href="?anio=<?php echo $filters['anio']; ?>&mes=<?php echo $filters['mes']; ?>&comedor_id=<?php echo $filters['comedor_id']; ?>&page=<?php echo $pagination['current_page'] - 1; ?>" 
+                           class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-chevron-left mr-2"></i> Anterior
+                        </a>
+                    <?php endif; ?>
+                    
+                    <?php if ($pagination['current_page'] < $pagination['total_pages']): ?>
+                        <a href="?anio=<?php echo $filters['anio']; ?>&mes=<?php echo $filters['mes']; ?>&comedor_id=<?php echo $filters['comedor_id']; ?>&page=<?php echo $pagination['current_page'] + 1; ?>" 
+                           class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+                            Siguiente <i class="fas fa-chevron-right ml-2"></i>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     

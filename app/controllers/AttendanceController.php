@@ -75,13 +75,12 @@ class AttendanceController extends Controller {
         $totalRecords = $stmt->fetch()['total'];
         $totalPages = ceil($totalRecords / $perPage);
         
-        $query .= " ORDER BY a.fecha DESC, t.hora_inicio LIMIT ? OFFSET ?";
+        $query .= " ORDER BY a.fecha DESC, t.hora_inicio LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
         
         $stmt = $this->db->prepare($query);
         
-        // Bind all params as positional parameters
-        $allParams = array_merge($params, [(int)$perPage, (int)$offset]);
-        $stmt->execute($allParams);
+        // Execute with params (LIMIT and OFFSET are now embedded in query)
+        $stmt->execute($params);
         $records = $stmt->fetchAll();
         
         // Get comedores and turnos for filters

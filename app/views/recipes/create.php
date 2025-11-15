@@ -88,6 +88,18 @@
                     <div id="ingredientes-container" class="space-y-3">
                         <!-- Ingredients will be added dynamically -->
                     </div>
+                    
+                    <!-- Total Cost Display -->
+                    <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold text-gray-700">
+                                <i class="fas fa-dollar-sign mr-2"></i> Costo Total de la Receta:
+                            </span>
+                            <span id="total-cost" class="text-2xl font-bold text-blue-600">
+                                $0.00
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="pt-6 border-t flex justify-end space-x-4">
@@ -108,6 +120,15 @@
     let ingredienteCounter = 0;
     const ingredientes = <?php echo json_encode($ingredientes); ?>;
     
+    // Create a map for quick ingredient lookup
+    const ingredientesMap = {};
+    ingredientes.forEach(ing => {
+        ingredientesMap[ing.id] = {
+            unidad_medida: ing.unidad_medida,
+            costo_unitario: parseFloat(ing.costo_unitario) || 0
+        };
+    });
+    
     function addIngredient() {
         const container = document.getElementById('ingredientes-container');
         const div = document.createElement('div');
@@ -117,6 +138,8 @@
         div.innerHTML = `
             <div class="flex-1">
                 <select name="ingredientes[${ingredienteCounter}][ingrediente_id]" required
+                        onchange="onIngredientChange(${ingredienteCounter})"
+                        id="ingrediente-select-${ingredienteCounter}"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Seleccione ingrediente...</option>
                     ${ingredientes.map(ing => `<option value="${ing.id}">${ing.nombre}</option>`).join('')}
@@ -124,18 +147,22 @@
             </div>
             <div class="w-32">
                 <input type="number" name="ingredientes[${ingredienteCounter}][cantidad]" 
+                       id="cantidad-${ingredienteCounter}"
                        placeholder="Cantidad" step="0.001" min="0" required
+                       oninput="calculateTotalCost()"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="w-24">
-                <select name="ingredientes[${ingredienteCounter}][unidad]" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="kg">kg</option>
-                    <option value="g">g</option>
-                    <option value="l">l</option>
-                    <option value="ml">ml</option>
-                    <option value="pzas">pzas</option>
-                </select>
+                <input type="text" name="ingredientes[${ingredienteCounter}][unidad]" required readonly
+                       id="unidad-${ingredienteCounter}"
+                       placeholder="Unidad"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
+            </div>
+            <div class="w-32">
+                <input type="text" readonly
+                       id="costo-${ingredienteCounter}"
+                       placeholder="Costo"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-right">
             </div>
             <div class="flex-1">
                 <input type="text" name="ingredientes[${ingredienteCounter}][notas]" 
@@ -152,10 +179,58 @@
         ingredienteCounter++;
     }
     
+    function onIngredientChange(index) {
+        const select = document.getElementById(`ingrediente-select-${index}`);
+        const unidadInput = document.getElementById(`unidad-${index}`);
+        const cantidadInput = document.getElementById(`cantidad-${index}`);
+        
+        const ingredienteId = select.value;
+        
+        if (ingredienteId && ingredientesMap[ingredienteId]) {
+            // Set the unit from the ingredient catalog (readonly)
+            unidadInput.value = ingredientesMap[ingredienteId].unidad_medida;
+        } else {
+            unidadInput.value = '';
+        }
+        
+        // Recalculate cost
+        calculateTotalCost();
+    }
+    
+    function calculateTotalCost() {
+        let totalCost = 0;
+        
+        for (let i = 0; i < ingredienteCounter; i++) {
+            const select = document.getElementById(`ingrediente-select-${i}`);
+            const cantidadInput = document.getElementById(`cantidad-${i}`);
+            const costoInput = document.getElementById(`costo-${i}`);
+            
+            if (select && cantidadInput) {
+                const ingredienteId = select.value;
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                
+                if (ingredienteId && ingredientesMap[ingredienteId]) {
+                    const costoUnitario = ingredientesMap[ingredienteId].costo_unitario;
+                    const costoIngrediente = cantidad * costoUnitario;
+                    
+                    if (costoInput) {
+                        costoInput.value = '$' + costoIngrediente.toFixed(2);
+                    }
+                    
+                    totalCost += costoIngrediente;
+                }
+            }
+        }
+        
+        // Update total cost display
+        document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(2);
+    }
+    
     function removeIngredient(id) {
         const element = document.getElementById(`ingrediente-${id}`);
         if (element) {
             element.remove();
+            calculateTotalCost();
         }
     }
     
