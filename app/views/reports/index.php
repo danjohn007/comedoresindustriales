@@ -76,7 +76,7 @@
         </a>
         
         <!-- Custom Report Generator -->
-        <div class="block bg-white rounded-lg shadow p-6 border-l-4 border-gray-500">
+        <a href="<?php echo Router::url('/reports/export-data'); ?>" class="block bg-white rounded-lg shadow hover:shadow-lg transition p-6 border-l-4 border-gray-500">
             <div class="flex items-center mb-4">
                 <div class="bg-gray-100 rounded-full p-4 mr-4">
                     <i class="fas fa-file-export text-gray-600 text-3xl"></i>
@@ -87,12 +87,12 @@
                 </div>
             </div>
             <p class="text-sm text-gray-600 mb-4">
-                Exporte datos en formato Excel o PDF para análisis externos.
+                Exporte datos en formato Excel, PDF o CSV para análisis externos.
             </p>
-            <button class="text-blue-600 hover:text-blue-700 text-sm font-semibold">
-                <i class="fas fa-download mr-1"></i> Próximamente
-            </button>
-        </div>
+            <span class="text-blue-600 hover:text-blue-700 text-sm font-semibold">
+                <i class="fas fa-download mr-1"></i> Generar Exportación
+            </span>
+        </a>
         
         <!-- API Documentation -->
         <div class="block bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500">

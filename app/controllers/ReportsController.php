@@ -140,6 +140,16 @@ class ReportsController extends Controller {
         $this->redirect('/reports');
     }
     
+    public function exportData() {
+        $this->requireAuth();
+        
+        $data = [
+            'title' => 'Exportar Datos - Generador Personalizado'
+        ];
+        
+        $this->view('reports/export', $data);
+    }
+    
     public function export($type) {
         $this->requireAuth();
         

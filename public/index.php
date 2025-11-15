@@ -82,6 +82,7 @@ $router->get('/reports/attendance', 'ReportsController', 'attendance');
 $router->get('/reports/deviation', 'ReportsController', 'deviation');
 $router->get('/reports/production', 'ReportsController', 'production');
 $router->get('/reports/costs', 'ReportsController', 'costs');
+$router->get('/reports/export-data', 'ReportsController', 'exportData');
 $router->post('/reports/generate', 'ReportsController', 'generate');
 $router->get('/reports/export/:type', 'ReportsController', 'export');
 
