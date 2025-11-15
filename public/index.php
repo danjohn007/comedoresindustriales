@@ -120,6 +120,8 @@ $router->post('/settings/ingredients/delete', 'SettingsController', 'deleteIngre
 $router->get('/profile', 'ProfileController', 'index');
 $router->get('/profile/change-password', 'ProfileController', 'changePassword');
 $router->post('/profile/update-password', 'ProfileController', 'updatePassword');
+$router->post('/profile/upload-image', 'ProfileController', 'uploadImage');
+$router->post('/profile/delete-image', 'ProfileController', 'deleteImage');
 
 // ========================================
 // FINANCIAL ROUTES
