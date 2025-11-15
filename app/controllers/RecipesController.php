@@ -87,9 +87,69 @@ class RecipesController extends Controller {
         $this->requireAuth();
         $this->requireRole(['admin', 'chef']);
         
-        // Implementation for creating recipe with ingredients
-        $_SESSION['info'] = 'Funcionalidad de creación de recetas disponible';
-        $this->redirect('/recipes');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/recipes/create');
+        }
+        
+        $nombre = trim($_POST['nombre'] ?? '');
+        $lineaServicioId = intval($_POST['linea_servicio_id'] ?? 0);
+        $descripcion = trim($_POST['descripcion'] ?? '');
+        $porcionesBase = intval($_POST['porciones_base'] ?? 100);
+        $tiempoPreparacion = intval($_POST['tiempo_preparacion'] ?? 0);
+        $ingredientes = $_POST['ingredientes'] ?? [];
+        
+        // Validar ingredientes mínimos
+        if (count($ingredientes) < 2) {
+            $_SESSION['error'] = 'Debe agregar al menos 2 ingredientes a la receta';
+            $this->redirect('/recipes/create');
+        }
+        
+        if (!$nombre || !$lineaServicioId) {
+            $_SESSION['error'] = 'Nombre y línea de servicio son requeridos';
+            $this->redirect('/recipes/create');
+        }
+        
+        try {
+            $this->db->beginTransaction();
+            
+            // Crear receta
+            $stmt = $this->db->prepare("
+                INSERT INTO recetas (nombre, linea_servicio_id, descripcion, porciones_base, tiempo_preparacion)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$nombre, $lineaServicioId, $descripcion, $porcionesBase, $tiempoPreparacion ?: null]);
+            
+            $recetaId = $this->db->lastInsertId();
+            
+            // Agregar ingredientes
+            $stmtIng = $this->db->prepare("
+                INSERT INTO receta_ingredientes (receta_id, ingrediente_id, cantidad, unidad, notas)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            
+            foreach ($ingredientes as $ing) {
+                if (!empty($ing['ingrediente_id']) && !empty($ing['cantidad'])) {
+                    $stmtIng->execute([
+                        $recetaId,
+                        $ing['ingrediente_id'],
+                        $ing['cantidad'],
+                        $ing['unidad'] ?? 'kg',
+                        $ing['notas'] ?? ''
+                    ]);
+                }
+            }
+            
+            $this->db->commit();
+            
+            $this->logAction('crear_receta', 'recetas', "Receta creada: {$nombre}");
+            $_SESSION['success'] = 'Receta creada correctamente con ' . count($ingredientes) . ' ingredientes';
+            $this->redirect('/recipes/view/' . $recetaId);
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            $_SESSION['error'] = 'Error al crear receta: ' . $e->getMessage();
+            $this->redirect('/recipes/create');
+        }
     }
     
     public function edit($id) {
