@@ -182,6 +182,8 @@
 </div>
 
 <script>
+    const baseUrl = '<?php echo Router::url(''); ?>';
+    
     function showAddModal() {
         document.getElementById('modalTitle').textContent = 'Agregar Ingrediente';
         document.getElementById('ingredientForm').reset();
@@ -189,45 +191,129 @@
         document.getElementById('ingredientModal').classList.remove('hidden');
     }
     
-    function viewIngredient(id) {
-        alert('Funcionalidad de vista detallada en desarrollo. ID: ' + id);
+    async function viewIngredient(id) {
+        try {
+            const response = await fetch(baseUrl + '/settings/ingredients/get/' + id);
+            const result = await response.json();
+            
+            if (result.success) {
+                const ing = result.data;
+                alert(`Ingrediente: ${ing.nombre}\nUnidad: ${ing.unidad_medida}\nCosto: $${ing.costo_unitario}\nProveedor: ${ing.proveedor || 'N/A'}\nEstado: ${ing.activo ? 'Activo' : 'Inactivo'}`);
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error al obtener ingrediente: ' + error.message);
+        }
     }
     
-    function editIngredient(id) {
-        // In a real implementation, this would fetch data via AJAX
-        document.getElementById('modalTitle').textContent = 'Editar Ingrediente';
-        document.getElementById('ingrediente_id').value = id;
-        document.getElementById('ingredientModal').classList.remove('hidden');
-        alert('Cargue los datos del ingrediente ID: ' + id + ' desde el servidor');
+    async function editIngredient(id) {
+        try {
+            const response = await fetch(baseUrl + '/settings/ingredients/get/' + id);
+            const result = await response.json();
+            
+            if (result.success) {
+                const ing = result.data;
+                document.getElementById('modalTitle').textContent = 'Editar Ingrediente';
+                document.getElementById('ingrediente_id').value = ing.id;
+                document.getElementById('nombre').value = ing.nombre;
+                document.getElementById('unidad_medida').value = ing.unidad_medida;
+                document.getElementById('costo_unitario').value = ing.costo_unitario;
+                document.getElementById('proveedor').value = ing.proveedor || '';
+                document.getElementById('ingredientModal').classList.remove('hidden');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error al cargar ingrediente: ' + error.message);
+        }
     }
     
-    function saveIngredient() {
+    async function saveIngredient() {
         const form = document.getElementById('ingredientForm');
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
         
-        // In a real implementation, this would send data via AJAX
-        alert('Guardando ingrediente... (implementar llamada AJAX al servidor)');
-        closeModal();
-        location.reload();
-    }
-    
-    function toggleIngredient(id, activate) {
-        const action = activate ? 'activar' : 'suspender';
-        if (confirm('¿Está seguro de ' + action + ' este ingrediente?')) {
-            // In a real implementation, this would send request via AJAX
-            alert('Ingrediente ' + action + 'do. (implementar llamada AJAX)');
-            location.reload();
+        const id = document.getElementById('ingrediente_id').value;
+        const formData = new FormData(form);
+        
+        const endpoint = id ? '/settings/ingredients/update' : '/settings/ingredients/create';
+        
+        try {
+            const response = await fetch(baseUrl + endpoint, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(result.message);
+                closeModal();
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error al guardar ingrediente: ' + error.message);
         }
     }
     
-    function deleteIngredient(id) {
-        if (confirm('¿Está seguro de eliminar este ingrediente?\nEsta acción no se puede deshacer.')) {
-            // In a real implementation, this would send request via AJAX
-            alert('Eliminando ingrediente ID: ' + id + ' (implementar llamada AJAX)');
-            location.reload();
+    async function toggleIngredient(id, activate) {
+        const action = activate ? 'activar' : 'suspender';
+        if (!confirm('¿Está seguro de ' + action + ' este ingrediente?')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('activo', activate ? 1 : 0);
+        
+        try {
+            const response = await fetch(baseUrl + '/settings/ingredients/toggle', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error al cambiar estado: ' + error.message);
+        }
+    }
+    
+    async function deleteIngredient(id) {
+        if (!confirm('¿Está seguro de eliminar este ingrediente?\nEsta acción no se puede deshacer.')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('id', id);
+        
+        try {
+            const response = await fetch(baseUrl + '/settings/ingredients/delete', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error al eliminar ingrediente: ' + error.message);
         }
     }
     
