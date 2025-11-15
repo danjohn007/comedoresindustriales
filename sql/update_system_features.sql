@@ -1,69 +1,77 @@
 -- ============================================
--- SQL UPDATE SCRIPT
+-- SQL UPDATE SCRIPT (safe import)
 -- Sistema de Gestión para Comedores Industriales
 -- Feature Updates and Improvements
 -- ============================================
+-- Este script intenta agregar la columna imagen_perfil y su índice.
+-- Para evitar que la importación falle si ya existen, se usa un
+-- procedimiento temporal que captura y continúa ante errores SQL.
+-- IMPORTANTE: hacer backup antes de ejecutar.
+-- Requiere: privilegio CREATE ROUTINE (para crear el procedimiento).
+-- Si no tienes CREATE ROUTINE, utiliza las instrucciones manuales al final.
+-- ============================================
 
--- Add imagen_perfil column to usuarios table for profile image upload functionality
-ALTER TABLE usuarios 
-ADD COLUMN IF NOT EXISTS imagen_perfil VARCHAR(255) NULL 
-COMMENT 'Ruta de la imagen de perfil del usuario' 
-AFTER ultimo_acceso;
+DELIMITER $$
 
--- Add index for better query performance
-CREATE INDEX IF NOT EXISTS idx_imagen_perfil ON usuarios(imagen_perfil);
+DROP PROCEDURE IF EXISTS safe_add_profile_column$$
+
+CREATE PROCEDURE safe_add_profile_column()
+BEGIN
+  -- Se captura cualquier error SQL y se continúa; esto evita que la importación falle.
+  -- Nota: esto también ocultará errores inesperados; revisar los logs si algo no funciona.
+  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION BEGIN END;
+
+  -- Intentar añadir la columna (si ya existe se ignora por el handler)
+  ALTER TABLE usuarios
+    ADD COLUMN imagen_perfil VARCHAR(255) NULL
+    COMMENT 'Ruta de la imagen de perfil del usuario'
+    AFTER ultimo_acceso;
+
+  -- Intentar crear el índice (si ya existe se ignora por el handler)
+  CREATE INDEX idx_imagen_perfil ON usuarios (imagen_perfil);
+END$$
+
+DELIMITER ;
+
+-- Ejecutar el procedimiento seguro
+CALL safe_add_profile_column();
+
+-- Eliminar el procedimiento temporal
+DROP PROCEDURE IF EXISTS safe_add_profile_column;
 
 -- ============================================
--- Notes and Considerations:
--- ============================================
--- 1. The imagen_perfil column stores the relative path to the profile image
---    Example: /uploads/profiles/profile_1_1234567890.jpg
+-- Notas y consideraciones:
+-- 1) Hacer copia de seguridad antes de ejecutar:
+--    mysqldump -u usuario -p nombre_base_de_datos > backup.sql
 --
--- 2. Images are stored in: public/uploads/profiles/
---    Make sure this directory exists and has write permissions
+-- 2) Ejecución:
+--    - Desde consola: mysql -u usuario -p nombre_base_de_datos < sql/update_system_features.sql
+--    - O importa vía phpMyAdmin / MySQL Workbench (ambos aceptan DELIMITER en la mayoría de configuraciones).
 --
--- 3. Supported image formats: JPG, PNG, GIF
---    Maximum file size: 5MB
+-- 3) Si tu usuario NO TIENE CREATE ROUTINE y no puedes pedirlo al DBA,
+--    ejecuta manualmente estos pasos (sin el archivo):
 --
--- 4. All other improvements (recipe unit preload, real-time cost calculation,
---    pagination, new financial reports) are implemented in the application
---    layer and don't require database schema changes
+--    a) Comprobar si existe la columna:
+--       SHOW COLUMNS FROM usuarios LIKE 'imagen_perfil';
+--    b) Si la respuesta está vacía, agrega la columna:
+--       ALTER TABLE usuarios
+--         ADD COLUMN imagen_perfil VARCHAR(255) NULL
+--         COMMENT 'Ruta de la imagen de perfil del usuario'
+--         AFTER ultimo_acceso;
+--    c) Comprobar si existe el índice:
+--       SHOW INDEX FROM usuarios WHERE Key_name = 'idx_imagen_perfil';
+--    d) Si no existe, crear el índice:
+--       CREATE INDEX idx_imagen_perfil ON usuarios (imagen_perfil);
 --
--- ============================================
--- Summary of Non-Database Changes:
--- ============================================
+-- 4) Para MySQL 8+ podrías usar directamente:
+--    ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS imagen_perfil VARCHAR(255) NULL COMMENT '...' AFTER ultimo_acceso;
+--    CREATE INDEX IF NOT EXISTS idx_imagen_perfil ON usuarios (imagen_perfil);
+--    (pero IF NOT EXISTS no está disponible en versiones más antiguas)
 --
--- FIXED ERRORS:
--- - Fixed SQL syntax errors in ProductionController.php (LIMIT/OFFSET)
--- - Fixed SQL syntax errors in AttendanceController.php (LIMIT/OFFSET)
--- - Fixed number_format() deprecation warnings in monthly_report.php
---
--- NEW FEATURES:
--- - Recipe creation: Auto-preload ingredient unit of measure (read-only)
--- - Recipe creation: Real-time cost calculation display
--- - Profile module: Profile image upload and management
---
--- PAGINATION ADDED TO:
--- - Movimientos Recientes (Recent Movements)
--- - Transacciones Financieras (Financial Transactions)
--- - Reporte Mensual (Monthly Report)
--- - Estado de Cuenta (Account Statement)
--- - Análisis por Categoría (Category Analysis)
---
--- NEW FINANCIAL REPORTS:
--- - Ejecución Presupuestal: Budget execution comparison report
--- - Alertas Presupuestales: Budget alerts for exceeded or near-exceeding budgets
--- - Exportar Datos: Excel export functionality for transactions and budgets
---
--- ============================================
--- Deployment Instructions:
--- ============================================
--- 1. Backup your database before running this script
--- 2. Run this SQL script on your database
--- 3. Create the uploads directory structure:
+-- 5) Directorio de uploads y permisos (parte de la funcionalidad, no DB):
 --    mkdir -p public/uploads/profiles
 --    chmod 755 public/uploads/profiles
--- 4. Deploy the updated PHP files
--- 5. Test all functionality
 --
+-- ============================================
+-- Fin del script
 -- ============================================
