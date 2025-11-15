@@ -11,7 +11,7 @@
     
     <!-- Settings Form -->
     <div class="bg-white rounded-lg shadow p-6">
-        <form method="POST" action="<?php echo Router::url('/settings/update'); ?>">
+        <form method="POST" action="<?php echo Router::url('/settings/update'); ?>" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
             
             <?php
@@ -34,7 +34,50 @@
                         <?php echo htmlspecialchars($setting['descripcion'] ?? $setting['clave'] ?? ''); ?>
                     </label>
                     
-                    <?php if (in_array($setting['tipo_dato'], ['text', 'number', 'email'])): ?>
+                    <?php if (in_array($setting['clave'], ['color_primario', 'color_secundario'])): ?>
+                        <!-- Color picker field -->
+                        <div class="flex items-center space-x-3">
+                            <input 
+                                type="color" 
+                                id="<?php echo htmlspecialchars($setting['clave']); ?>_picker"
+                                value="<?php echo htmlspecialchars($setting['valor']); ?>"
+                                class="h-10 w-20 rounded cursor-pointer"
+                                onchange="document.getElementById('<?php echo htmlspecialchars($setting['clave']); ?>').value = this.value"
+                            >
+                            <input 
+                                type="text" 
+                                id="<?php echo htmlspecialchars($setting['clave']); ?>"
+                                name="<?php echo htmlspecialchars($setting['clave']); ?>"
+                                value="<?php echo htmlspecialchars($setting['valor']); ?>"
+                                placeholder="#000000"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                onchange="document.getElementById('<?php echo htmlspecialchars($setting['clave']); ?>_picker').value = this.value"
+                            >
+                        </div>
+                    <?php elseif ($setting['clave'] === 'logo_sistema'): ?>
+                        <!-- File upload field for logo -->
+                        <div class="space-y-2">
+                            <?php if (!empty($setting['valor'])): ?>
+                            <div class="mb-2">
+                                <img src="<?php echo htmlspecialchars($setting['valor']); ?>" alt="Logo actual" class="h-16 border rounded">
+                            </div>
+                            <?php endif; ?>
+                            <input 
+                                type="file" 
+                                id="logo_file"
+                                name="logo_file"
+                                accept="image/*"
+                                class="block w-full text-sm text-gray-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-full file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-blue-50 file:text-blue-700
+                                    hover:file:bg-blue-100"
+                            >
+                            <input type="hidden" name="<?php echo htmlspecialchars($setting['clave']); ?>" value="<?php echo htmlspecialchars($setting['valor']); ?>">
+                            <p class="text-xs text-gray-500">Formatos soportados: JPG, PNG, SVG (máx. 2MB)</p>
+                        </div>
+                    <?php elseif (in_array($setting['tipo_dato'], ['text', 'number', 'email'])): ?>
                         <input 
                             type="<?php echo $setting['tipo_dato']; ?>" 
                             name="<?php echo htmlspecialchars($setting['clave']); ?>"

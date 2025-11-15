@@ -128,8 +128,12 @@ $router->get('/financial', 'FinancialController', 'index');
 $router->get('/financial/transactions', 'FinancialController', 'transactions');
 $router->get('/financial/budgets', 'FinancialController', 'budgets');
 $router->get('/financial/reports', 'FinancialController', 'reports');
+$router->get('/financial/categories', 'FinancialController', 'categories');
 $router->post('/financial/transactions/create', 'FinancialController', 'createTransaction');
 $router->post('/financial/budgets/create', 'FinancialController', 'createBudget');
+$router->post('/financial/categories/create', 'FinancialController', 'createCategory');
+$router->post('/financial/categories/update', 'FinancialController', 'updateCategory');
+$router->post('/financial/categories/toggle', 'FinancialController', 'toggleCategory');
 
 // ========================================
 // SUPPLIERS ROUTES

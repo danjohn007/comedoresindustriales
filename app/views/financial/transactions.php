@@ -57,13 +57,9 @@
                                 <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                                     <i class="fas fa-arrow-up mr-1"></i>Ingreso
                                 </span>
-                            <?php elseif ($trans['tipo'] === 'egreso'): ?>
+                            <?php else: ?>
                                 <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
                                     <i class="fas fa-arrow-down mr-1"></i>Egreso
-                                </span>
-                            <?php else: ?>
-                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                                    <i class="fas fa-sync mr-1"></i>Ajuste
                                 </span>
                             <?php endif; ?>
                         </td>
@@ -113,7 +109,6 @@
                     <select name="tipo" required class="w-full px-3 py-2 border rounded-lg">
                         <option value="ingreso">Ingreso</option>
                         <option value="egreso">Egreso</option>
-                        <option value="ajuste">Ajuste</option>
                     </select>
                 </div>
                 <div>
