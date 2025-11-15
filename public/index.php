@@ -82,6 +82,7 @@ $router->get('/reports/attendance', 'ReportsController', 'attendance');
 $router->get('/reports/deviation', 'ReportsController', 'deviation');
 $router->get('/reports/production', 'ReportsController', 'production');
 $router->get('/reports/costs', 'ReportsController', 'costs');
+$router->get('/reports/export-data', 'ReportsController', 'exportData');
 $router->post('/reports/generate', 'ReportsController', 'generate');
 $router->get('/reports/export/:type', 'ReportsController', 'export');
 
@@ -127,8 +128,22 @@ $router->get('/financial', 'FinancialController', 'index');
 $router->get('/financial/transactions', 'FinancialController', 'transactions');
 $router->get('/financial/budgets', 'FinancialController', 'budgets');
 $router->get('/financial/reports', 'FinancialController', 'reports');
+$router->get('/financial/categories', 'FinancialController', 'categories');
 $router->post('/financial/transactions/create', 'FinancialController', 'createTransaction');
 $router->post('/financial/budgets/create', 'FinancialController', 'createBudget');
+$router->post('/financial/categories/create', 'FinancialController', 'createCategory');
+$router->post('/financial/categories/update', 'FinancialController', 'updateCategory');
+$router->post('/financial/categories/toggle', 'FinancialController', 'toggleCategory');
+
+// ========================================
+// SUPPLIERS ROUTES
+// ========================================
+$router->get('/suppliers', 'SuppliersController', 'index');
+$router->post('/suppliers/create', 'SuppliersController', 'create');
+$router->get('/suppliers/get/:id', 'SuppliersController', 'get');
+$router->post('/suppliers/update', 'SuppliersController', 'update');
+$router->post('/suppliers/toggle', 'SuppliersController', 'toggle');
+$router->post('/suppliers/delete', 'SuppliersController', 'delete');
 
 // ========================================
 // API ROUTES (REQ-API-001)

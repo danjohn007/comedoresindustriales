@@ -12,6 +12,9 @@ class ProductionController extends Controller {
         $status = $_GET['status'] ?? 'all';
         $startDate = $_GET['start_date'] ?? date('Y-m-d');
         $endDate = $_GET['end_date'] ?? date('Y-m-d', strtotime('+7 days'));
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
         
         $query = "
             SELECT 
@@ -43,7 +46,16 @@ class ProductionController extends Controller {
             $params[] = $status;
         }
         
-        $query .= " ORDER BY op.fecha_servicio, t.hora_inicio, r.nombre";
+        // Count total records
+        $countQuery = "SELECT COUNT(*) as total FROM (" . $query . ") as subquery";
+        $stmt = $this->db->prepare($countQuery);
+        $stmt->execute($params);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
+        
+        $query .= " ORDER BY op.fecha_servicio, t.hora_inicio, r.nombre LIMIT ? OFFSET ?";
+        $params[] = $perPage;
+        $params[] = $offset;
         
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -56,6 +68,12 @@ class ProductionController extends Controller {
                 'status' => $status,
                 'start_date' => $startDate,
                 'end_date' => $endDate
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
             ]
         ];
         

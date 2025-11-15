@@ -33,6 +33,9 @@ class AttendanceController extends Controller {
         $turnoId = $_GET['turno'] ?? null;
         $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
         $endDate = $_GET['end_date'] ?? date('Y-m-d');
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
         
         // Build query
         $query = "
@@ -65,7 +68,16 @@ class AttendanceController extends Controller {
             $params[] = $turnoId;
         }
         
-        $query .= " ORDER BY a.fecha DESC, t.hora_inicio";
+        // Count total records
+        $countQuery = "SELECT COUNT(*) as total FROM (" . $query . ") as subquery";
+        $stmt = $this->db->prepare($countQuery);
+        $stmt->execute($params);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
+        
+        $query .= " ORDER BY a.fecha DESC, t.hora_inicio LIMIT ? OFFSET ?";
+        $params[] = $perPage;
+        $params[] = $offset;
         
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -88,6 +100,12 @@ class AttendanceController extends Controller {
                 'turno' => $turnoId,
                 'start_date' => $startDate,
                 'end_date' => $endDate
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
             ]
         ];
         

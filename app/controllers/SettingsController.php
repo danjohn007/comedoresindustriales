@@ -34,8 +34,28 @@ class SettingsController extends Controller {
         }
         
         try {
+            // Handle logo file upload
+            if (isset($_FILES['logo_file']) && $_FILES['logo_file']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = PUBLIC_PATH . '/uploads/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                
+                $fileExtension = strtolower(pathinfo($_FILES['logo_file']['name'], PATHINFO_EXTENSION));
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'svg'];
+                
+                if (in_array($fileExtension, $allowedExtensions) && $_FILES['logo_file']['size'] <= 2097152) { // 2MB max
+                    $fileName = 'logo_' . time() . '.' . $fileExtension;
+                    $filePath = $uploadDir . $fileName;
+                    
+                    if (move_uploaded_file($_FILES['logo_file']['tmp_name'], $filePath)) {
+                        $_POST['logo_sistema'] = '/uploads/' . $fileName;
+                    }
+                }
+            }
+            
             foreach ($_POST as $key => $value) {
-                if ($key === 'csrf_token') continue;
+                if ($key === 'csrf_token' || $key === 'logo_file') continue;
                 
                 $stmt = $this->db->prepare("
                     UPDATE configuracion_sistema 
