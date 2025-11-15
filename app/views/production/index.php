@@ -41,10 +41,13 @@
                 <input type="date" name="end_date" value="<?php echo $filters['end_date']; ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
             </div>
             
-            <div class="flex items-end">
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">
                     <i class="fas fa-search mr-2"></i> Filtrar
                 </button>
+                <a href="<?php echo Router::url('/production'); ?>" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg" title="Restaurar filtros">
+                    <i class="fas fa-redo"></i>
+                </a>
             </div>
         </form>
     </div>
@@ -129,6 +132,37 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Pagination -->
+        <?php if ($pagination['total_pages'] > 1): ?>
+        <div class="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+            <div class="text-sm text-gray-600">
+                Mostrando <?php echo count($orders); ?> de <?php echo $pagination['total_records']; ?> registros
+            </div>
+            <div class="flex space-x-1">
+                <?php if ($pagination['current_page'] > 1): ?>
+                <a href="?<?php echo http_build_query(array_merge($filters, ['page' => $pagination['current_page'] - 1])); ?>" 
+                   class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <?php endif; ?>
+                
+                <?php for ($i = max(1, $pagination['current_page'] - 2); $i <= min($pagination['total_pages'], $pagination['current_page'] + 2); $i++): ?>
+                <a href="?<?php echo http_build_query(array_merge($filters, ['page' => $i])); ?>" 
+                   class="px-3 py-1 <?php echo $i == $pagination['current_page'] ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'; ?> rounded">
+                    <?php echo $i; ?>
+                </a>
+                <?php endfor; ?>
+                
+                <?php if ($pagination['current_page'] < $pagination['total_pages']): ?>
+                <a href="?<?php echo http_build_query(array_merge($filters, ['page' => $pagination['current_page'] + 1])); ?>" 
+                   class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
