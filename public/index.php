@@ -66,7 +66,7 @@ $router->get('/production/print/:id', 'ProductionController', 'print');
 $router->get('/recipes', 'RecipesController', 'index');
 $router->get('/recipes/create', 'RecipesController', 'create');
 $router->post('/recipes/create', 'RecipesController', 'store');
-$router->get('/recipes/view/:id', 'RecipesController', 'view');
+$router->get('/recipes/view/:id', 'RecipesController', 'viewRecipe');
 $router->get('/recipes/edit/:id', 'RecipesController', 'edit');
 $router->post('/recipes/update/:id', 'RecipesController', 'update');
 
