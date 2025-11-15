@@ -59,10 +59,20 @@
     </div>
     
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <a href="<?php echo Router::url('/financial/transactions'); ?>" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-6 text-center transition">
             <i class="fas fa-exchange-alt text-3xl mb-3"></i>
             <p class="font-semibold">Transacciones</p>
+        </a>
+        
+        <a href="<?php echo Router::url('/financial/recent-movements'); ?>" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg p-6 text-center transition">
+            <i class="fas fa-clock text-3xl mb-3"></i>
+            <p class="font-semibold">Movimientos Recientes</p>
+        </a>
+        
+        <a href="<?php echo Router::url('/financial/categories'); ?>" class="bg-teal-600 hover:bg-teal-700 text-white rounded-lg p-6 text-center transition">
+            <i class="fas fa-tags text-3xl mb-3"></i>
+            <p class="font-semibold">Categorías</p>
         </a>
         
         <a href="<?php echo Router::url('/financial/budgets'); ?>" class="bg-green-600 hover:bg-green-700 text-white rounded-lg p-6 text-center transition">

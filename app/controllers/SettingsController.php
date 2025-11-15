@@ -49,7 +49,11 @@ class SettingsController extends Controller {
                     $filePath = $uploadDir . $fileName;
                     
                     if (move_uploaded_file($_FILES['logo_file']['tmp_name'], $filePath)) {
-                        $_POST['logo_sistema'] = '/uploads/' . $fileName;
+                        // Use BASE_URL to ensure correct path
+                        $logoPath = str_replace($_SERVER['DOCUMENT_ROOT'], '', $uploadDir) . $fileName;
+                        // Normalize path separators
+                        $logoPath = str_replace('\\', '/', $logoPath);
+                        $_POST['logo_sistema'] = $logoPath;
                     }
                 }
             }
@@ -393,9 +397,14 @@ class SettingsController extends Controller {
         $stmt = $this->db->query("SELECT * FROM ingredientes ORDER BY nombre");
         $ingredientes = $stmt->fetchAll();
         
+        // Get suppliers for dropdown
+        $stmt = $this->db->query("SELECT id, nombre FROM proveedores WHERE activo = 1 ORDER BY nombre");
+        $proveedores = $stmt->fetchAll();
+        
         $data = [
             'title' => 'Catálogo de Ingredientes',
-            'ingredientes' => $ingredientes
+            'ingredientes' => $ingredientes,
+            'proveedores' => $proveedores
         ];
         
         $this->view('settings/ingredients', $data);
@@ -412,7 +421,7 @@ class SettingsController extends Controller {
         $nombre = $_POST['nombre'] ?? '';
         $unidadMedida = $_POST['unidad_medida'] ?? '';
         $costoUnitario = $_POST['costo_unitario'] ?? 0;
-        $proveedor = $_POST['proveedor'] ?? '';
+        $proveedorId = !empty($_POST['proveedor_id']) ? intval($_POST['proveedor_id']) : null;
         
         if (empty($nombre) || empty($unidadMedida)) {
             $this->json(['error' => 'Nombre y unidad de medida son requeridos'], 400);
@@ -420,10 +429,10 @@ class SettingsController extends Controller {
         
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO ingredientes (nombre, unidad_medida, costo_unitario, proveedor, activo)
+                INSERT INTO ingredientes (nombre, unidad_medida, costo_unitario, proveedor_id, activo)
                 VALUES (?, ?, ?, ?, 1)
             ");
-            $stmt->execute([$nombre, $unidadMedida, $costoUnitario, $proveedor]);
+            $stmt->execute([$nombre, $unidadMedida, $costoUnitario, $proveedorId]);
             
             $this->logAction('crear_ingrediente', 'ingredientes', "Ingrediente creado: {$nombre}");
             $this->json(['success' => true, 'message' => 'Ingrediente creado correctamente']);
@@ -445,7 +454,7 @@ class SettingsController extends Controller {
         $nombre = $_POST['nombre'] ?? '';
         $unidadMedida = $_POST['unidad_medida'] ?? '';
         $costoUnitario = $_POST['costo_unitario'] ?? 0;
-        $proveedor = $_POST['proveedor'] ?? '';
+        $proveedorId = !empty($_POST['proveedor_id']) ? intval($_POST['proveedor_id']) : null;
         
         if (!$id || empty($nombre) || empty($unidadMedida)) {
             $this->json(['error' => 'Datos incompletos'], 400);
@@ -454,10 +463,10 @@ class SettingsController extends Controller {
         try {
             $stmt = $this->db->prepare("
                 UPDATE ingredientes 
-                SET nombre = ?, unidad_medida = ?, costo_unitario = ?, proveedor = ?
+                SET nombre = ?, unidad_medida = ?, costo_unitario = ?, proveedor_id = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$nombre, $unidadMedida, $costoUnitario, $proveedor, $id]);
+            $stmt->execute([$nombre, $unidadMedida, $costoUnitario, $proveedorId, $id]);
             
             $this->logAction('actualizar_ingrediente', 'ingredientes', "Ingrediente actualizado: {$nombre}");
             $this->json(['success' => true, 'message' => 'Ingrediente actualizado correctamente']);

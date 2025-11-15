@@ -70,10 +70,15 @@ class FinancialController extends Controller {
         $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
         $comedores = $stmt->fetchAll();
         
+        // Get categorias for dropdown
+        $stmt = $this->db->query("SELECT id, nombre, tipo FROM categorias_financieras WHERE activo = 1 ORDER BY tipo, nombre");
+        $categorias = $stmt->fetchAll();
+        
         $data = [
             'title' => 'Transacciones Financieras',
             'transactions' => $transactions,
-            'comedores' => $comedores
+            'comedores' => $comedores,
+            'categorias' => $categorias
         ];
         
         $this->view('financial/transactions', $data);
@@ -127,7 +132,7 @@ class FinancialController extends Controller {
         $tipo = $_POST['tipo'] ?? '';
         $concepto = trim($_POST['concepto'] ?? '');
         $monto = floatval($_POST['monto'] ?? 0);
-        $categoria = trim($_POST['categoria'] ?? '');
+        $categoriaId = !empty($_POST['categoria_id']) ? intval($_POST['categoria_id']) : null;
         $fechaTransaccion = $_POST['fecha_transaccion'] ?? date('Y-m-d');
         $descripcion = trim($_POST['descripcion'] ?? '');
         
@@ -138,10 +143,10 @@ class FinancialController extends Controller {
         try {
             $stmt = $this->db->prepare("
                 INSERT INTO transacciones_financieras 
-                (comedor_id, tipo, concepto, monto, categoria, fecha_transaccion, descripcion, creado_por)
+                (comedor_id, tipo, concepto, monto, categoria_id, fecha_transaccion, descripcion, creado_por)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$comedorId, $tipo, $concepto, $monto, $categoria, $fechaTransaccion, $descripcion, $_SESSION['user_id']]);
+            $stmt->execute([$comedorId, $tipo, $concepto, $monto, $categoriaId, $fechaTransaccion, $descripcion, $_SESSION['user_id']]);
             
             // Update budget if exists
             $this->updateBudgetSpent($comedorId, $fechaTransaccion, $tipo, $monto);
@@ -185,6 +190,160 @@ class FinancialController extends Controller {
             
         } catch (Exception $e) {
             $this->json(['error' => 'Error al crear presupuesto: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function recentMovements() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        // Get last 30 days transactions
+        $stmt = $this->db->query("
+            SELECT t.*, c.nombre as comedor_nombre, u.nombre_completo as creado_por_nombre,
+                   cat.nombre as categoria_nombre
+            FROM transacciones_financieras t
+            LEFT JOIN comedores c ON t.comedor_id = c.id
+            LEFT JOIN usuarios u ON t.creado_por = u.id
+            LEFT JOIN categorias_financieras cat ON t.categoria_id = cat.id
+            WHERE t.fecha_transaccion >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC
+            LIMIT 100
+        ");
+        $movements = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Movimientos Recientes (últimos 30 días)',
+            'movements' => $movements
+        ];
+        
+        $this->view('financial/recent_movements', $data);
+    }
+    
+    public function categories() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $stmt = $this->db->query("
+            SELECT * FROM categorias_financieras 
+            ORDER BY tipo, nombre
+        ");
+        $categorias = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Catálogo de Categorías Financieras',
+            'categorias' => $categorias
+        ];
+        
+        $this->view('financial/categories', $data);
+    }
+    
+    public function createCategory() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $nombre = trim($_POST['nombre'] ?? '');
+        $tipo = $_POST['tipo'] ?? '';
+        $descripcion = trim($_POST['descripcion'] ?? '');
+        
+        if (!$nombre || !$tipo) {
+            $this->json(['error' => 'Nombre y tipo son requeridos'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO categorias_financieras (nombre, tipo, descripcion)
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([$nombre, $tipo, $descripcion]);
+            
+            $this->logAction('crear_categoria_financiera', 'financiero', "Categoría creada: {$nombre}");
+            $this->json(['success' => true, 'message' => 'Categoría creada correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al crear categoría: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function getCategory($id) {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM categorias_financieras WHERE id = ?");
+            $stmt->execute([$id]);
+            $categoria = $stmt->fetch();
+            
+            if (!$categoria) {
+                $this->json(['error' => 'Categoría no encontrada'], 404);
+            }
+            
+            $this->json(['success' => true, 'data' => $categoria]);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al obtener categoría: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function updateCategory() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $id = intval($_POST['id'] ?? 0);
+        $nombre = trim($_POST['nombre'] ?? '');
+        $tipo = $_POST['tipo'] ?? '';
+        $descripcion = trim($_POST['descripcion'] ?? '');
+        
+        if (!$id || !$nombre || !$tipo) {
+            $this->json(['error' => 'Datos incompletos'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE categorias_financieras 
+                SET nombre = ?, tipo = ?, descripcion = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$nombre, $tipo, $descripcion, $id]);
+            
+            $this->logAction('actualizar_categoria_financiera', 'financiero', "Categoría actualizada: {$nombre}");
+            $this->json(['success' => true, 'message' => 'Categoría actualizada correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al actualizar categoría: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function toggleCategory() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $id = intval($_POST['id'] ?? 0);
+        
+        if (!$id) {
+            $this->json(['error' => 'ID requerido'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("UPDATE categorias_financieras SET activo = NOT activo WHERE id = ?");
+            $stmt->execute([$id]);
+            
+            $this->logAction('toggle_categoria_financiera', 'financiero', "Estado de categoría cambiado: ID {$id}");
+            $this->json(['success' => true, 'message' => 'Estado cambiado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al cambiar estado: ' . $e->getMessage()], 500);
         }
     }
     

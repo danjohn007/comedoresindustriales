@@ -210,6 +210,9 @@ class RecipesController extends Controller {
         $descripcion = trim($_POST['descripcion'] ?? '');
         $porcionesBase = intval($_POST['porciones_base'] ?? 100);
         $tiempoPreparacion = intval($_POST['tiempo_preparacion'] ?? 0);
+        $ingredientesExistentes = $_POST['ingredientes_existentes'] ?? [];
+        $ingredientesNuevos = $_POST['ingredientes_nuevos'] ?? [];
+        $ingredientesEliminar = $_POST['ingredientes_eliminar'] ?? [];
         
         if (!$nombre || !$lineaServicioId) {
             $_SESSION['error'] = 'Nombre y línea de servicio son requeridos';
@@ -217,6 +220,9 @@ class RecipesController extends Controller {
         }
         
         try {
+            $this->db->beginTransaction();
+            
+            // Update recipe
             $stmt = $this->db->prepare("
                 UPDATE recetas 
                 SET nombre = ?, linea_servicio_id = ?, descripcion = ?, 
@@ -229,11 +235,60 @@ class RecipesController extends Controller {
                 $porcionesBase, $tiempoPreparacion ?: null, $id
             ]);
             
+            // Delete marked ingredients
+            if (!empty($ingredientesEliminar)) {
+                $stmtDel = $this->db->prepare("DELETE FROM receta_ingredientes WHERE id = ? AND receta_id = ?");
+                foreach ($ingredientesEliminar as $ingId) {
+                    $stmtDel->execute([$ingId, $id]);
+                }
+            }
+            
+            // Update existing ingredients
+            $stmtUpdate = $this->db->prepare("
+                UPDATE receta_ingredientes 
+                SET ingrediente_id = ?, cantidad = ?, unidad = ?, notas = ?
+                WHERE id = ? AND receta_id = ?
+            ");
+            
+            foreach ($ingredientesExistentes as $ingId => $ing) {
+                if (!empty($ing['ingrediente_id']) && !empty($ing['cantidad'])) {
+                    $stmtUpdate->execute([
+                        $ing['ingrediente_id'],
+                        $ing['cantidad'],
+                        $ing['unidad'] ?? 'kg',
+                        $ing['notas'] ?? '',
+                        $ingId,
+                        $id
+                    ]);
+                }
+            }
+            
+            // Add new ingredients
+            $stmtInsert = $this->db->prepare("
+                INSERT INTO receta_ingredientes (receta_id, ingrediente_id, cantidad, unidad, notas)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            
+            foreach ($ingredientesNuevos as $ing) {
+                if (!empty($ing['ingrediente_id']) && !empty($ing['cantidad'])) {
+                    $stmtInsert->execute([
+                        $id,
+                        $ing['ingrediente_id'],
+                        $ing['cantidad'],
+                        $ing['unidad'] ?? 'kg',
+                        $ing['notas'] ?? ''
+                    ]);
+                }
+            }
+            
+            $this->db->commit();
+            
             $this->logAction('actualizar_receta', 'recetas', "Receta actualizada: {$nombre}");
-            $_SESSION['success'] = 'Receta actualizada correctamente';
+            $_SESSION['success'] = 'Receta e ingredientes actualizados correctamente';
             $this->redirect('/recipes/view/' . $id);
             
         } catch (Exception $e) {
+            $this->db->rollBack();
             $_SESSION['error'] = 'Error al actualizar: ' . $e->getMessage();
             $this->redirect('/recipes/edit/' . $id);
         }

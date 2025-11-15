@@ -149,8 +149,8 @@
                                 <?php endif; ?>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">
-                                <?php echo htmlspecialchars(substr($proj['justificacion_ajuste'], 0, 50)); ?>
-                                <?php if (strlen($proj['justificacion_ajuste']) > 50) echo '...'; ?>
+                                <?php echo htmlspecialchars(substr($proj['justificacion_ajuste'] ?? '', 0, 50)); ?>
+                                <?php if (strlen($proj['justificacion_ajuste'] ?? '') > 50) echo '...'; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
