@@ -99,6 +99,49 @@
     </div>
     <?php endif; ?>
     
+    <!-- Quick Access Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <?php if (in_array($_SESSION['user_role'], ['admin'])): ?>
+        <a href="<?php echo Router::url('/settings/users'); ?>" class="block bg-white rounded-lg shadow hover:shadow-lg transition p-6 border-l-4 border-purple-500">
+            <div class="flex items-center">
+                <div class="bg-purple-100 rounded-full p-4 mr-4">
+                    <i class="fas fa-users-cog text-purple-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 text-lg">Usuarios</h3>
+                    <p class="text-sm text-gray-600">Gestionar usuarios del sistema</p>
+                </div>
+            </div>
+        </a>
+        
+        <a href="<?php echo Router::url('/settings/comedores'); ?>" class="block bg-white rounded-lg shadow hover:shadow-lg transition p-6 border-l-4 border-green-500">
+            <div class="flex items-center">
+                <div class="bg-green-100 rounded-full p-4 mr-4">
+                    <i class="fas fa-building text-green-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 text-lg">Comedores</h3>
+                    <p class="text-sm text-gray-600">Gestionar comedores</p>
+                </div>
+            </div>
+        </a>
+        <?php endif; ?>
+        
+        <?php if (in_array($_SESSION['user_role'], ['admin', 'chef'])): ?>
+        <a href="<?php echo Router::url('/settings/ingredients'); ?>" class="block bg-white rounded-lg shadow hover:shadow-lg transition p-6 border-l-4 border-orange-500">
+            <div class="flex items-center">
+                <div class="bg-orange-100 rounded-full p-4 mr-4">
+                    <i class="fas fa-carrot text-orange-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 text-lg">Ingredientes</h3>
+                    <p class="text-sm text-gray-600">Catálogo de ingredientes</p>
+                </div>
+            </div>
+        </a>
+        <?php endif; ?>
+    </div>
+    
     <!-- Charts and Tables Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Recent Attendance Chart -->

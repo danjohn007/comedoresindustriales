@@ -91,6 +91,13 @@ $router->get('/settings/comedores', 'SettingsController', 'comedores');
 $router->get('/settings/ingredients', 'SettingsController', 'ingredients');
 
 // ========================================
+// PROFILE ROUTES
+// ========================================
+$router->get('/profile', 'ProfileController', 'index');
+$router->get('/profile/change-password', 'ProfileController', 'changePassword');
+$router->post('/profile/update-password', 'ProfileController', 'updatePassword');
+
+// ========================================
 // API ROUTES (REQ-API-001)
 // ========================================
 $router->post('/api/attendance/sync', 'ApiController', 'syncAttendance');

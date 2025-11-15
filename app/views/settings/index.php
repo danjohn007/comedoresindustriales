@@ -80,45 +80,6 @@
             </div>
         </form>
     </div>
-    
-    <!-- Quick Links -->
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <a href="<?php echo Router::url('/settings/users'); ?>" class="block bg-white rounded-lg shadow p-4 hover:shadow-lg transition border-l-4 border-blue-500">
-            <div class="flex items-center">
-                <div class="bg-blue-100 rounded-full p-3 mr-4">
-                    <i class="fas fa-users text-blue-600 text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-gray-800">Usuarios</h3>
-                    <p class="text-sm text-gray-600">Gestionar usuarios del sistema</p>
-                </div>
-            </div>
-        </a>
-        
-        <a href="<?php echo Router::url('/settings/comedores'); ?>" class="block bg-white rounded-lg shadow p-4 hover:shadow-lg transition border-l-4 border-green-500">
-            <div class="flex items-center">
-                <div class="bg-green-100 rounded-full p-3 mr-4">
-                    <i class="fas fa-building text-green-600 text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-gray-800">Comedores</h3>
-                    <p class="text-sm text-gray-600">Gestionar comedores</p>
-                </div>
-            </div>
-        </a>
-        
-        <a href="<?php echo Router::url('/settings/ingredients'); ?>" class="block bg-white rounded-lg shadow p-4 hover:shadow-lg transition border-l-4 border-yellow-500">
-            <div class="flex items-center">
-                <div class="bg-yellow-100 rounded-full p-3 mr-4">
-                    <i class="fas fa-carrot text-yellow-600 text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-gray-800">Ingredientes</h3>
-                    <p class="text-sm text-gray-600">Catálogo de ingredientes</p>
-                </div>
-            </div>
-        </a>
-    </div>
 </div>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>

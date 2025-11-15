@@ -1,4 +1,6 @@
-    <footer class="bg-white border-t border-gray-200 py-4 mt-8">
+    </div> <!-- Close main content wrapper -->
+
+    <footer class="bg-white border-t border-gray-200 py-4 mt-8 lg:ml-64">
         <div class="container mx-auto px-4">
             <div class="text-center text-gray-600 text-sm">
                 <p>&copy; <?php echo date('Y'); ?> Sistema de Gestión para Comedores Industriales - Estado de Querétaro</p>
