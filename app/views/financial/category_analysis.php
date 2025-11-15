@@ -209,6 +209,39 @@
                 </table>
             </div>
         </div>
+        
+        <!-- Pagination -->
+        <?php if (isset($pagination) && $pagination['total_pages'] > 1): ?>
+        <div class="mt-4 px-6 py-4 bg-white rounded-lg shadow flex justify-between items-center">
+            <div class="text-sm text-gray-700">
+                Mostrando página <?php echo $pagination['current_page']; ?> de <?php echo $pagination['total_pages']; ?>
+                (<?php echo $pagination['total_records']; ?> categorías en total)
+            </div>
+            <div class="flex space-x-2">
+                <?php 
+                $queryParams = [
+                    'start_date' => $filters['start_date'],
+                    'end_date' => $filters['end_date'],
+                    'comedor_id' => $filters['comedor_id']
+                ];
+                ?>
+                
+                <?php if ($pagination['current_page'] > 1): ?>
+                    <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => $pagination['current_page'] - 1])); ?>" 
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+                        <i class="fas fa-chevron-left mr-2"></i> Anterior
+                    </a>
+                <?php endif; ?>
+                
+                <?php if ($pagination['current_page'] < $pagination['total_pages']): ?>
+                    <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => $pagination['current_page'] + 1])); ?>" 
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+                        Siguiente <i class="fas fa-chevron-right ml-2"></i>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
     
     <!-- Print/Export Actions -->

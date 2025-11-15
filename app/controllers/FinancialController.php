@@ -57,13 +57,29 @@ class FinancialController extends Controller {
         $this->requireAuth();
         $this->requireRole(['admin', 'coordinador']);
         
-        $stmt = $this->db->query("
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
+        // Count total records
+        $countStmt = $this->db->query("
+            SELECT COUNT(*) as total
+            FROM transacciones_financieras t
+        ");
+        $totalRecords = $countStmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
+        
+        // Get transactions with pagination
+        $query = "
             SELECT t.*, c.nombre as comedor_nombre, u.nombre_completo as creado_por_nombre
             FROM transacciones_financieras t
             LEFT JOIN comedores c ON t.comedor_id = c.id
             LEFT JOIN usuarios u ON t.creado_por = u.id
             ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC
-        ");
+            LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
+        
+        $stmt = $this->db->query($query);
         $transactions = $stmt->fetchAll();
         
         // Get comedores for filter
@@ -78,7 +94,13 @@ class FinancialController extends Controller {
             'title' => 'Transacciones Financieras',
             'transactions' => $transactions,
             'comedores' => $comedores,
-            'categorias' => $categorias
+            'categorias' => $categorias,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
+            ]
         ];
         
         $this->view('financial/transactions', $data);
@@ -197,8 +219,22 @@ class FinancialController extends Controller {
         $this->requireAuth();
         $this->requireRole(['admin', 'coordinador']);
         
-        // Get last 30 days transactions
-        $stmt = $this->db->query("
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
+        // Count total records
+        $countStmt = $this->db->query("
+            SELECT COUNT(*) as total
+            FROM transacciones_financieras t
+            WHERE t.fecha_transaccion >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        ");
+        $totalRecords = $countStmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
+        
+        // Get last 30 days transactions with pagination
+        $query = "
             SELECT t.*, c.nombre as comedor_nombre, u.nombre_completo as creado_por_nombre,
                    cat.nombre as categoria_nombre
             FROM transacciones_financieras t
@@ -207,13 +243,20 @@ class FinancialController extends Controller {
             LEFT JOIN categorias_financieras cat ON t.categoria_id = cat.id
             WHERE t.fecha_transaccion >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC
-            LIMIT 100
-        ");
+            LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
+        
+        $stmt = $this->db->query($query);
         $movements = $stmt->fetchAll();
         
         $data = [
             'title' => 'Movimientos Recientes (últimos 30 días)',
-            'movements' => $movements
+            'movements' => $movements,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
+            ]
         ];
         
         $this->view('financial/recent_movements', $data);
@@ -398,9 +441,33 @@ class FinancialController extends Controller {
         $mes = $_GET['mes'] ?? date('n');
         $comedorId = $_GET['comedor_id'] ?? null;
         
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
         // Get comedores for filter
         $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
         $comedores = $stmt->fetchAll();
+        
+        // Build base query for counting
+        $countQuery = "
+            SELECT COUNT(DISTINCT c.id) as total
+            FROM comedores c
+            WHERE c.activo = 1
+        ";
+        
+        $countParams = [];
+        
+        if ($comedorId) {
+            $countQuery .= " AND c.id = ?";
+            $countParams[] = $comedorId;
+        }
+        
+        $stmt = $this->db->prepare($countQuery);
+        $stmt->execute($countParams);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
         
         // Build report query
         $query = "
@@ -433,7 +500,8 @@ class FinancialController extends Controller {
         }
         
         $query .= " GROUP BY c.id, c.nombre, p.presupuesto_asignado, p.presupuesto_gastado, p.porcentaje_ejecutado, p.estado
-                    ORDER BY c.nombre";
+                    ORDER BY c.nombre
+                    LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
         
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -449,9 +517,9 @@ class FinancialController extends Controller {
         ];
         
         foreach ($reportData as $row) {
-            $totals['ingresos'] += $row['total_ingresos'];
-            $totals['egresos'] += $row['total_egresos'];
-            $totals['balance'] += $row['balance'];
+            $totals['ingresos'] += $row['total_ingresos'] ?? 0;
+            $totals['egresos'] += $row['total_egresos'] ?? 0;
+            $totals['balance'] += $row['balance'] ?? 0;
             $totals['presupuesto_asignado'] += $row['presupuesto_asignado'] ?? 0;
             $totals['presupuesto_gastado'] += $row['presupuesto_gastado'] ?? 0;
         }
@@ -465,6 +533,12 @@ class FinancialController extends Controller {
                 'anio' => $anio,
                 'mes' => $mes,
                 'comedor_id' => $comedorId
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
             ]
         ];
         
@@ -480,9 +554,38 @@ class FinancialController extends Controller {
         $comedorId = $_GET['comedor_id'] ?? null;
         $tipo = $_GET['tipo'] ?? 'all';
         
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
         // Get comedores for filter
         $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
         $comedores = $stmt->fetchAll();
+        
+        // Build count query
+        $countQuery = "
+            SELECT COUNT(*) as total
+            FROM transacciones_financieras t
+            WHERE t.fecha_transaccion BETWEEN ? AND ?
+        ";
+        
+        $countParams = [$startDate, $endDate];
+        
+        if ($comedorId) {
+            $countQuery .= " AND t.comedor_id = ?";
+            $countParams[] = $comedorId;
+        }
+        
+        if ($tipo !== 'all') {
+            $countQuery .= " AND t.tipo = ?";
+            $countParams[] = $tipo;
+        }
+        
+        $stmt = $this->db->prepare($countQuery);
+        $stmt->execute($countParams);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
         
         // Build transactions query
         $query = "
@@ -515,29 +618,44 @@ class FinancialController extends Controller {
             $params[] = $tipo;
         }
         
-        $query .= " ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC";
+        $query .= " ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC
+                    LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
         
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
         $transactions = $stmt->fetchAll();
         
-        // Calculate totals
-        $totals = [
-            'ingresos' => 0,
-            'egresos' => 0,
-            'balance' => 0,
-            'total_transacciones' => count($transactions)
-        ];
+        // Calculate totals for the entire result set (not just current page)
+        $totalsQuery = "
+            SELECT 
+                SUM(CASE WHEN t.tipo = 'ingreso' THEN t.monto ELSE 0 END) as total_ingresos,
+                SUM(CASE WHEN t.tipo = 'egreso' THEN t.monto ELSE 0 END) as total_egresos
+            FROM transacciones_financieras t
+            WHERE t.fecha_transaccion BETWEEN ? AND ?
+        ";
         
-        foreach ($transactions as $tx) {
-            if ($tx['tipo'] === 'ingreso') {
-                $totals['ingresos'] += $tx['monto'];
-            } else if ($tx['tipo'] === 'egreso') {
-                $totals['egresos'] += $tx['monto'];
-            }
+        $totalsParams = [$startDate, $endDate];
+        
+        if ($comedorId) {
+            $totalsQuery .= " AND t.comedor_id = ?";
+            $totalsParams[] = $comedorId;
         }
         
-        $totals['balance'] = $totals['ingresos'] - $totals['egresos'];
+        if ($tipo !== 'all') {
+            $totalsQuery .= " AND t.tipo = ?";
+            $totalsParams[] = $tipo;
+        }
+        
+        $stmt = $this->db->prepare($totalsQuery);
+        $stmt->execute($totalsParams);
+        $totalsRow = $stmt->fetch();
+        
+        $totals = [
+            'ingresos' => $totalsRow['total_ingresos'] ?? 0,
+            'egresos' => $totalsRow['total_egresos'] ?? 0,
+            'balance' => ($totalsRow['total_ingresos'] ?? 0) - ($totalsRow['total_egresos'] ?? 0),
+            'total_transacciones' => $totalRecords
+        ];
         
         $data = [
             'title' => 'Estado de Cuenta',
@@ -549,6 +667,12 @@ class FinancialController extends Controller {
                 'end_date' => $endDate,
                 'comedor_id' => $comedorId,
                 'tipo' => $tipo
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
             ]
         ];
         
@@ -563,9 +687,25 @@ class FinancialController extends Controller {
         $endDate = $_GET['end_date'] ?? date('Y-m-d');
         $comedorId = $_GET['comedor_id'] ?? null;
         
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
         // Get comedores for filter
         $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
         $comedores = $stmt->fetchAll();
+        
+        // Count query
+        $countQuery = "
+            SELECT COUNT(*) as total
+            FROM categorias_financieras cat
+            WHERE cat.activo = 1
+        ";
+        
+        $stmt = $this->db->query($countQuery);
+        $totalRecords = $stmt->fetch()['total'];
+        $totalPages = ceil($totalRecords / $perPage);
         
         // Build analysis query
         $query = "
@@ -592,7 +732,8 @@ class FinancialController extends Controller {
         
         $query .= " WHERE cat.activo = 1
                     GROUP BY cat.id, cat.nombre, cat.tipo
-                    ORDER BY cat.tipo, total_monto DESC";
+                    ORDER BY cat.tipo, total_monto DESC
+                    LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
         
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -629,6 +770,12 @@ class FinancialController extends Controller {
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'comedor_id' => $comedorId
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'per_page' => $perPage
             ]
         ];
         
