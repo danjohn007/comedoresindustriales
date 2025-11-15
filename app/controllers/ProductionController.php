@@ -53,13 +53,12 @@ class ProductionController extends Controller {
         $totalRecords = $stmt->fetch()['total'];
         $totalPages = ceil($totalRecords / $perPage);
         
-        $query .= " ORDER BY op.fecha_servicio, t.hora_inicio, r.nombre LIMIT ? OFFSET ?";
+        $query .= " ORDER BY op.fecha_servicio, t.hora_inicio, r.nombre LIMIT " . (int)$perPage . " OFFSET " . (int)$offset;
         
         $stmt = $this->db->prepare($query);
         
-        // Bind all params as positional parameters
-        $allParams = array_merge($params, [(int)$perPage, (int)$offset]);
-        $stmt->execute($allParams);
+        // Execute with params (LIMIT and OFFSET are now embedded in query)
+        $stmt->execute($params);
         $orders = $stmt->fetchAll();
         
         $data = [

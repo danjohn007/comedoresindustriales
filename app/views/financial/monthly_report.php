@@ -133,13 +133,13 @@
                                     <div class="text-xs text-gray-500"><?php echo $row['total_transacciones']; ?> transacciones</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 font-medium">
-                                    $<?php echo number_format($row['total_ingresos'], 2); ?>
+                                    $<?php echo number_format($row['total_ingresos'] ?? 0, 2); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-red-600 font-medium">
-                                    $<?php echo number_format($row['total_egresos'], 2); ?>
+                                    $<?php echo number_format($row['total_egresos'] ?? 0, 2); ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium <?php echo $row['balance'] >= 0 ? 'text-blue-600' : 'text-red-600'; ?>">
-                                    $<?php echo number_format($row['balance'], 2); ?>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium <?php echo ($row['balance'] ?? 0) >= 0 ? 'text-blue-600' : 'text-red-600'; ?>">
+                                    $<?php echo number_format($row['balance'] ?? 0, 2); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-700">
                                     <?php echo $row['presupuesto_asignado'] ? '$' . number_format($row['presupuesto_asignado'], 2) : '-'; ?>
