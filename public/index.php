@@ -131,6 +131,16 @@ $router->post('/financial/transactions/create', 'FinancialController', 'createTr
 $router->post('/financial/budgets/create', 'FinancialController', 'createBudget');
 
 // ========================================
+// SUPPLIERS ROUTES
+// ========================================
+$router->get('/suppliers', 'SuppliersController', 'index');
+$router->post('/suppliers/create', 'SuppliersController', 'create');
+$router->get('/suppliers/get/:id', 'SuppliersController', 'get');
+$router->post('/suppliers/update', 'SuppliersController', 'update');
+$router->post('/suppliers/toggle', 'SuppliersController', 'toggle');
+$router->post('/suppliers/delete', 'SuppliersController', 'delete');
+
+// ========================================
 // API ROUTES (REQ-API-001)
 // ========================================
 $router->post('/api/attendance/sync', 'ApiController', 'syncAttendance');

@@ -96,6 +96,13 @@
                         <span class="ml-3">Ingredientes</span>
                     </a>
                     <?php endif; ?>
+                    
+                    <?php if (in_array($_SESSION['user_role'], ['admin', 'coordinador', 'chef'])): ?>
+                    <a href="<?php echo Router::url('/suppliers'); ?>" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition">
+                        <i class="fas fa-truck w-5"></i>
+                        <span class="ml-3">Proveedores</span>
+                    </a>
+                    <?php endif; ?>
                 </div>
                 
                 <!-- Admin Section -->

@@ -96,15 +96,86 @@ class RecipesController extends Controller {
         $this->requireAuth();
         $this->requireRole(['admin', 'chef']);
         
-        $_SESSION['info'] = 'Funcionalidad de edición de recetas disponible';
-        $this->redirect('/recipes/viewRecipe/' . $id);
+        // Get recipe
+        $stmt = $this->db->prepare("SELECT * FROM recetas WHERE id = ?");
+        $stmt->execute([$id]);
+        $receta = $stmt->fetch();
+        
+        if (!$receta) {
+            $_SESSION['error'] = 'Receta no encontrada';
+            $this->redirect('/recipes');
+        }
+        
+        // Get lineas de servicio
+        $stmt = $this->db->query("SELECT * FROM lineas_servicio WHERE activo = 1 ORDER BY orden_visualizacion");
+        $lineas = $stmt->fetchAll();
+        
+        // Get all ingredients
+        $stmt = $this->db->query("SELECT * FROM ingredientes WHERE activo = 1 ORDER BY nombre");
+        $ingredientes = $stmt->fetchAll();
+        
+        // Get recipe ingredients
+        $stmt = $this->db->prepare("
+            SELECT ri.*, i.nombre as ingrediente_nombre
+            FROM receta_ingredientes ri
+            JOIN ingredientes i ON ri.ingrediente_id = i.id
+            WHERE ri.receta_id = ?
+            ORDER BY i.nombre
+        ");
+        $stmt->execute([$id]);
+        $recetaIngredientes = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Editar Receta',
+            'receta' => $receta,
+            'lineas' => $lineas,
+            'ingredientes' => $ingredientes,
+            'recetaIngredientes' => $recetaIngredientes,
+            'csrf_token' => $this->generateCsrfToken()
+        ];
+        
+        $this->view('recipes/edit', $data);
     }
     
     public function update($id) {
         $this->requireAuth();
         $this->requireRole(['admin', 'chef']);
         
-        $_SESSION['info'] = 'Funcionalidad de actualización de recetas disponible';
-        $this->redirect('/recipes/viewRecipe/' . $id);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/recipes/edit/' . $id);
+        }
+        
+        $nombre = trim($_POST['nombre'] ?? '');
+        $lineaServicioId = intval($_POST['linea_servicio_id'] ?? 0);
+        $descripcion = trim($_POST['descripcion'] ?? '');
+        $porcionesBase = intval($_POST['porciones_base'] ?? 100);
+        $tiempoPreparacion = intval($_POST['tiempo_preparacion'] ?? 0);
+        
+        if (!$nombre || !$lineaServicioId) {
+            $_SESSION['error'] = 'Nombre y línea de servicio son requeridos';
+            $this->redirect('/recipes/edit/' . $id);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE recetas 
+                SET nombre = ?, linea_servicio_id = ?, descripcion = ?, 
+                    porciones_base = ?, tiempo_preparacion = ?
+                WHERE id = ?
+            ");
+            
+            $stmt->execute([
+                $nombre, $lineaServicioId, $descripcion, 
+                $porcionesBase, $tiempoPreparacion ?: null, $id
+            ]);
+            
+            $this->logAction('actualizar_receta', 'recetas', "Receta actualizada: {$nombre}");
+            $_SESSION['success'] = 'Receta actualizada correctamente';
+            $this->redirect('/recipes/view/' . $id);
+            
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Error al actualizar: ' . $e->getMessage();
+            $this->redirect('/recipes/edit/' . $id);
+        }
     }
 }
