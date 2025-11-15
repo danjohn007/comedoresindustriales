@@ -130,6 +130,9 @@ $router->get('/financial/recent-movements', 'FinancialController', 'recentMoveme
 $router->get('/financial/budgets', 'FinancialController', 'budgets');
 $router->get('/financial/reports', 'FinancialController', 'reports');
 $router->get('/financial/categories', 'FinancialController', 'categories');
+$router->get('/financial/monthly-report', 'FinancialController', 'monthlyReport');
+$router->get('/financial/account-statement', 'FinancialController', 'accountStatement');
+$router->get('/financial/category-analysis', 'FinancialController', 'categoryAnalysis');
 $router->post('/financial/transactions/create', 'FinancialController', 'createTransaction');
 $router->post('/financial/budgets/create', 'FinancialController', 'createBudget');
 $router->post('/financial/categories/create', 'FinancialController', 'createCategory');
