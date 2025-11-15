@@ -68,10 +68,156 @@ class SettingsController extends Controller {
         
         $data = [
             'title' => 'Gestión de Usuarios',
-            'users' => $users
+            'users' => $users,
+            'success' => $_SESSION['success'] ?? null,
+            'error' => $_SESSION['error'] ?? null
         ];
         
+        unset($_SESSION['success'], $_SESSION['error']);
+        
         $this->view('settings/users', $data);
+    }
+    
+    public function createUser() {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $nombreCompleto = trim($_POST['nombre_completo'] ?? '');
+        $rol = $_POST['rol'] ?? 'operativo';
+        
+        if (empty($username) || empty($email) || empty($password) || empty($nombreCompleto)) {
+            $this->json(['error' => 'Todos los campos son requeridos'], 400);
+        }
+        
+        if (strlen($password) < 6) {
+            $this->json(['error' => 'La contraseña debe tener al menos 6 caracteres'], 400);
+        }
+        
+        try {
+            // Check if username or email already exists
+            $stmt = $this->db->prepare("SELECT id FROM usuarios WHERE username = ? OR email = ?");
+            $stmt->execute([$username, $email]);
+            if ($stmt->fetch()) {
+                $this->json(['error' => 'El usuario o email ya existe'], 400);
+            }
+            
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            
+            $stmt = $this->db->prepare("
+                INSERT INTO usuarios (username, email, password, nombre_completo, rol, activo)
+                VALUES (?, ?, ?, ?, ?, 1)
+            ");
+            $stmt->execute([$username, $email, $hashedPassword, $nombreCompleto, $rol]);
+            
+            $this->logAction('crear_usuario', 'usuarios', "Usuario creado: {$username}");
+            $this->json(['success' => true, 'message' => 'Usuario creado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al crear usuario: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function getUser($id) {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        try {
+            $stmt = $this->db->prepare("
+                SELECT id, username, email, nombre_completo, rol, activo, fecha_creacion, ultimo_acceso
+                FROM usuarios WHERE id = ?
+            ");
+            $stmt->execute([$id]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                $this->json(['error' => 'Usuario no encontrado'], 404);
+            }
+            
+            $this->json(['success' => true, 'data' => $user]);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al obtener usuario: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function updateUser() {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $id = $_POST['id'] ?? 0;
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $nombreCompleto = trim($_POST['nombre_completo'] ?? '');
+        $rol = $_POST['rol'] ?? 'operativo';
+        $activo = $_POST['activo'] ?? 1;
+        
+        if (!$id || empty($username) || empty($email) || empty($nombreCompleto)) {
+            $this->json(['error' => 'Datos incompletos'], 400);
+        }
+        
+        try {
+            // Check if username or email already exists for another user
+            $stmt = $this->db->prepare("SELECT id FROM usuarios WHERE (username = ? OR email = ?) AND id != ?");
+            $stmt->execute([$username, $email, $id]);
+            if ($stmt->fetch()) {
+                $this->json(['error' => 'El usuario o email ya existe'], 400);
+            }
+            
+            $stmt = $this->db->prepare("
+                UPDATE usuarios 
+                SET username = ?, email = ?, nombre_completo = ?, rol = ?, activo = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$username, $email, $nombreCompleto, $rol, $activo, $id]);
+            
+            $this->logAction('actualizar_usuario', 'usuarios', "Usuario actualizado: {$username}");
+            $this->json(['success' => true, 'message' => 'Usuario actualizado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al actualizar usuario: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function deleteUser() {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $id = $_POST['id'] ?? 0;
+        
+        if (!$id) {
+            $this->json(['error' => 'ID requerido'], 400);
+        }
+        
+        // Prevent deleting current user
+        if ($id == $_SESSION['user_id']) {
+            $this->json(['error' => 'No puede eliminar su propio usuario'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("DELETE FROM usuarios WHERE id = ?");
+            $stmt->execute([$id]);
+            
+            $this->logAction('eliminar_usuario', 'usuarios', "Usuario eliminado: ID {$id}");
+            $this->json(['success' => true, 'message' => 'Usuario eliminado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al eliminar usuario: ' . $e->getMessage()], 500);
+        }
     }
     
     public function comedores() {
@@ -83,10 +229,141 @@ class SettingsController extends Controller {
         
         $data = [
             'title' => 'Gestión de Comedores',
-            'comedores' => $comedores
+            'comedores' => $comedores,
+            'success' => $_SESSION['success'] ?? null,
+            'error' => $_SESSION['error'] ?? null
         ];
         
+        unset($_SESSION['success'], $_SESSION['error']);
+        
         $this->view('settings/comedores', $data);
+    }
+    
+    public function createComedor() {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $nombre = trim($_POST['nombre'] ?? '');
+        $ubicacion = trim($_POST['ubicacion'] ?? '');
+        $ciudad = trim($_POST['ciudad'] ?? 'Querétaro');
+        $estado = trim($_POST['estado'] ?? 'Querétaro');
+        $capacidadTotal = intval($_POST['capacidad_total'] ?? 0);
+        $turnosActivos = $_POST['turnos_activos'] ?? 'matutino,vespertino,nocturno';
+        
+        if (empty($nombre) || empty($ubicacion) || $capacidadTotal <= 0) {
+            $this->json(['error' => 'Todos los campos son requeridos'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO comedores (nombre, ubicacion, ciudad, estado, capacidad_total, turnos_activos, activo)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+            ");
+            $stmt->execute([$nombre, $ubicacion, $ciudad, $estado, $capacidadTotal, $turnosActivos]);
+            
+            $this->logAction('crear_comedor', 'comedores', "Comedor creado: {$nombre}");
+            $this->json(['success' => true, 'message' => 'Comedor creado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al crear comedor: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function getComedor($id) {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM comedores WHERE id = ?");
+            $stmt->execute([$id]);
+            $comedor = $stmt->fetch();
+            
+            if (!$comedor) {
+                $this->json(['error' => 'Comedor no encontrado'], 404);
+            }
+            
+            $this->json(['success' => true, 'data' => $comedor]);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al obtener comedor: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function updateComedor() {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $id = $_POST['id'] ?? 0;
+        $nombre = trim($_POST['nombre'] ?? '');
+        $ubicacion = trim($_POST['ubicacion'] ?? '');
+        $ciudad = trim($_POST['ciudad'] ?? 'Querétaro');
+        $estado = trim($_POST['estado'] ?? 'Querétaro');
+        $capacidadTotal = intval($_POST['capacidad_total'] ?? 0);
+        $turnosActivos = $_POST['turnos_activos'] ?? 'matutino,vespertino,nocturno';
+        $activo = $_POST['activo'] ?? 1;
+        
+        if (!$id || empty($nombre) || empty($ubicacion) || $capacidadTotal <= 0) {
+            $this->json(['error' => 'Datos incompletos'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE comedores 
+                SET nombre = ?, ubicacion = ?, ciudad = ?, estado = ?, 
+                    capacidad_total = ?, turnos_activos = ?, activo = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$nombre, $ubicacion, $ciudad, $estado, $capacidadTotal, $turnosActivos, $activo, $id]);
+            
+            $this->logAction('actualizar_comedor', 'comedores', "Comedor actualizado: {$nombre}");
+            $this->json(['success' => true, 'message' => 'Comedor actualizado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al actualizar comedor: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function deleteComedor() {
+        $this->requireAuth();
+        $this->requireRole(['admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $id = $_POST['id'] ?? 0;
+        
+        if (!$id) {
+            $this->json(['error' => 'ID requerido'], 400);
+        }
+        
+        try {
+            // Check if comedor is being used
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM ordenes_produccion WHERE comedor_id = ?");
+            $stmt->execute([$id]);
+            $result = $stmt->fetch();
+            
+            if ($result['count'] > 0) {
+                $this->json(['error' => 'No se puede eliminar. El comedor tiene órdenes de producción asociadas'], 400);
+            }
+            
+            $stmt = $this->db->prepare("DELETE FROM comedores WHERE id = ?");
+            $stmt->execute([$id]);
+            
+            $this->logAction('eliminar_comedor', 'comedores', "Comedor eliminado: ID {$id}");
+            $this->json(['success' => true, 'message' => 'Comedor eliminado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al eliminar comedor: ' . $e->getMessage()], 500);
+        }
     }
     
     public function ingredients() {

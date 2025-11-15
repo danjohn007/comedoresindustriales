@@ -5,22 +5,18 @@
         <!-- Logo and Title -->
         <div class="text-center mb-8">
             <div class="inline-block p-4 bg-blue-600 rounded-full mb-4">
-                <i class="fas fa-utensils text-white text-4xl"></i>
+                <i class="fas fa-key text-white text-4xl"></i>
             </div>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">
-                Sistema de Gestión
+                Recuperar Contraseña
             </h1>
             <p class="text-gray-600">
-                Comedores Industriales - Querétaro
+                Ingrese su correo electrónico para recibir el enlace de recuperación
             </p>
         </div>
         
-        <!-- Login Card -->
+        <!-- Forgot Password Card -->
         <div class="bg-white rounded-lg shadow-xl p-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">
-                Iniciar Sesión
-            </h2>
-            
             <?php if (isset($error)): ?>
             <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded">
                 <div class="flex items-center">
@@ -30,34 +26,28 @@
             </div>
             <?php endif; ?>
             
-            <form method="POST" action="<?php echo Router::url('/login'); ?>" class="space-y-6">
-                <!-- Username -->
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-user mr-1"></i> Usuario o Email
-                    </label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Ingrese su usuario o email"
-                    >
+            <?php if (isset($success)): ?>
+            <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                    <p class="text-green-700"><?php echo htmlspecialchars($success); ?></p>
                 </div>
-                
-                <!-- Password -->
+            </div>
+            <?php endif; ?>
+            
+            <form method="POST" action="<?php echo Router::url('/forgot-password'); ?>" class="space-y-6">
+                <!-- Email -->
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-lock mr-1"></i> Contraseña
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-envelope mr-1"></i> Correo Electrónico
                     </label>
                     <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
+                        type="email" 
+                        id="email" 
+                        name="email" 
                         required
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="Ingrese su contraseña"
+                        placeholder="ejemplo@correo.com"
                     >
                 </div>
                 
@@ -66,13 +56,13 @@
                     type="submit"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105"
                 >
-                    <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
+                    <i class="fas fa-paper-plane mr-2"></i> Enviar Enlace de Recuperación
                 </button>
                 
-                <!-- Forgot Password Link -->
+                <!-- Back to Login Link -->
                 <div class="text-center mt-4">
-                    <a href="<?php echo Router::url('/forgot-password'); ?>" class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                        <i class="fas fa-key mr-1"></i> ¿Olvidó su contraseña?
+                    <a href="<?php echo Router::url('/login'); ?>" class="text-sm text-gray-600 hover:text-gray-800 hover:underline">
+                        <i class="fas fa-arrow-left mr-1"></i> Volver al inicio de sesión
                     </a>
                 </div>
             </form>

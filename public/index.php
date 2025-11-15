@@ -21,6 +21,10 @@ $router->get('/', 'AuthController', 'index');
 $router->get('/login', 'AuthController', 'login');
 $router->post('/login', 'AuthController', 'doLogin');
 $router->get('/logout', 'AuthController', 'logout');
+$router->get('/forgot-password', 'AuthController', 'forgotPassword');
+$router->post('/forgot-password', 'AuthController', 'sendPasswordReset');
+$router->get('/reset-password', 'AuthController', 'resetPassword');
+$router->post('/reset-password', 'AuthController', 'doResetPassword');
 
 // ========================================
 // DASHBOARD ROUTES
@@ -86,8 +90,22 @@ $router->get('/reports/export/:type', 'ReportsController', 'export');
 // ========================================
 $router->get('/settings', 'SettingsController', 'index');
 $router->post('/settings/update', 'SettingsController', 'update');
+
+// Users management
 $router->get('/settings/users', 'SettingsController', 'users');
+$router->post('/settings/users/create', 'SettingsController', 'createUser');
+$router->get('/settings/users/get/:id', 'SettingsController', 'getUser');
+$router->post('/settings/users/update', 'SettingsController', 'updateUser');
+$router->post('/settings/users/delete', 'SettingsController', 'deleteUser');
+
+// Comedores management
 $router->get('/settings/comedores', 'SettingsController', 'comedores');
+$router->post('/settings/comedores/create', 'SettingsController', 'createComedor');
+$router->get('/settings/comedores/get/:id', 'SettingsController', 'getComedor');
+$router->post('/settings/comedores/update', 'SettingsController', 'updateComedor');
+$router->post('/settings/comedores/delete', 'SettingsController', 'deleteComedor');
+
+// Ingredients management
 $router->get('/settings/ingredients', 'SettingsController', 'ingredients');
 $router->post('/settings/ingredients/create', 'SettingsController', 'createIngredient');
 $router->post('/settings/ingredients/update', 'SettingsController', 'updateIngredient');
@@ -101,6 +119,16 @@ $router->post('/settings/ingredients/delete', 'SettingsController', 'deleteIngre
 $router->get('/profile', 'ProfileController', 'index');
 $router->get('/profile/change-password', 'ProfileController', 'changePassword');
 $router->post('/profile/update-password', 'ProfileController', 'updatePassword');
+
+// ========================================
+// FINANCIAL ROUTES
+// ========================================
+$router->get('/financial', 'FinancialController', 'index');
+$router->get('/financial/transactions', 'FinancialController', 'transactions');
+$router->get('/financial/budgets', 'FinancialController', 'budgets');
+$router->get('/financial/reports', 'FinancialController', 'reports');
+$router->post('/financial/transactions/create', 'FinancialController', 'createTransaction');
+$router->post('/financial/budgets/create', 'FinancialController', 'createBudget');
 
 // ========================================
 // API ROUTES (REQ-API-001)

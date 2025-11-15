@@ -65,6 +65,13 @@
                     <span class="ml-3">Reportes</span>
                 </a>
                 
+                <?php if (in_array($_SESSION['user_role'], ['admin', 'coordinador'])): ?>
+                <a href="<?php echo Router::url('/financial'); ?>" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition">
+                    <i class="fas fa-dollar-sign w-5"></i>
+                    <span class="ml-3">Financiero</span>
+                </a>
+                <?php endif; ?>
+                
                 <!-- Accesos Directos -->
                 <div class="pt-4 mt-4 border-t">
                     <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">

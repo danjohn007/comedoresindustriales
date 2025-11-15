@@ -1,0 +1,233 @@
+<?php
+/**
+ * Financial Controller
+ * Handles financial management and reporting
+ */
+
+class FinancialController extends Controller {
+    
+    public function index() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        // Get financial summary
+        $stmt = $this->db->query("
+            SELECT 
+                SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END) as total_ingresos,
+                SUM(CASE WHEN tipo = 'egreso' THEN monto ELSE 0 END) as total_egresos,
+                COUNT(*) as total_transacciones
+            FROM transacciones_financieras
+            WHERE MONTH(fecha_transaccion) = MONTH(CURRENT_DATE())
+            AND YEAR(fecha_transaccion) = YEAR(CURRENT_DATE())
+        ");
+        $summary = $stmt->fetch();
+        
+        // Get recent transactions
+        $stmt = $this->db->query("
+            SELECT t.*, c.nombre as comedor_nombre
+            FROM transacciones_financieras t
+            LEFT JOIN comedores c ON t.comedor_id = c.id
+            ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC
+            LIMIT 10
+        ");
+        $recentTransactions = $stmt->fetchAll();
+        
+        // Get budget status
+        $stmt = $this->db->query("
+            SELECT p.*, c.nombre as comedor_nombre
+            FROM presupuestos p
+            LEFT JOIN comedores c ON p.comedor_id = c.id
+            WHERE p.anio = YEAR(CURRENT_DATE())
+            AND p.mes = MONTH(CURRENT_DATE())
+            ORDER BY c.nombre
+        ");
+        $budgets = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Módulo Financiero',
+            'summary' => $summary,
+            'recentTransactions' => $recentTransactions,
+            'budgets' => $budgets
+        ];
+        
+        $this->view('financial/index', $data);
+    }
+    
+    public function transactions() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $stmt = $this->db->query("
+            SELECT t.*, c.nombre as comedor_nombre, u.nombre_completo as creado_por_nombre
+            FROM transacciones_financieras t
+            LEFT JOIN comedores c ON t.comedor_id = c.id
+            LEFT JOIN usuarios u ON t.creado_por = u.id
+            ORDER BY t.fecha_transaccion DESC, t.fecha_creacion DESC
+        ");
+        $transactions = $stmt->fetchAll();
+        
+        // Get comedores for filter
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Transacciones Financieras',
+            'transactions' => $transactions,
+            'comedores' => $comedores
+        ];
+        
+        $this->view('financial/transactions', $data);
+    }
+    
+    public function budgets() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $stmt = $this->db->query("
+            SELECT p.*, c.nombre as comedor_nombre
+            FROM presupuestos p
+            LEFT JOIN comedores c ON p.comedor_id = c.id
+            ORDER BY p.anio DESC, p.mes DESC, c.nombre
+        ");
+        $budgets = $stmt->fetchAll();
+        
+        // Get comedores for create/edit
+        $stmt = $this->db->query("SELECT id, nombre FROM comedores WHERE activo = 1 ORDER BY nombre");
+        $comedores = $stmt->fetchAll();
+        
+        $data = [
+            'title' => 'Presupuestos',
+            'budgets' => $budgets,
+            'comedores' => $comedores
+        ];
+        
+        $this->view('financial/budgets', $data);
+    }
+    
+    public function reports() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        $data = [
+            'title' => 'Reportes Financieros'
+        ];
+        
+        $this->view('financial/reports', $data);
+    }
+    
+    public function createTransaction() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $comedorId = intval($_POST['comedor_id'] ?? 0);
+        $tipo = $_POST['tipo'] ?? '';
+        $concepto = trim($_POST['concepto'] ?? '');
+        $monto = floatval($_POST['monto'] ?? 0);
+        $categoria = trim($_POST['categoria'] ?? '');
+        $fechaTransaccion = $_POST['fecha_transaccion'] ?? date('Y-m-d');
+        $descripcion = trim($_POST['descripcion'] ?? '');
+        
+        if (!$comedorId || !$tipo || !$concepto || $monto <= 0) {
+            $this->json(['error' => 'Todos los campos son requeridos'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO transacciones_financieras 
+                (comedor_id, tipo, concepto, monto, categoria, fecha_transaccion, descripcion, creado_por)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$comedorId, $tipo, $concepto, $monto, $categoria, $fechaTransaccion, $descripcion, $_SESSION['user_id']]);
+            
+            // Update budget if exists
+            $this->updateBudgetSpent($comedorId, $fechaTransaccion, $tipo, $monto);
+            
+            $this->logAction('crear_transaccion', 'financiero', "Transacción creada: {$concepto}");
+            $this->json(['success' => true, 'message' => 'Transacción creada correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al crear transacción: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    public function createBudget() {
+        $this->requireAuth();
+        $this->requireRole(['admin', 'coordinador']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Método no permitido'], 405);
+        }
+        
+        $comedorId = intval($_POST['comedor_id'] ?? 0);
+        $anio = intval($_POST['anio'] ?? date('Y'));
+        $mes = intval($_POST['mes'] ?? date('n'));
+        $presupuestoAsignado = floatval($_POST['presupuesto_asignado'] ?? 0);
+        $notas = trim($_POST['notas'] ?? '');
+        
+        if (!$comedorId || !$anio || !$mes || $presupuestoAsignado <= 0) {
+            $this->json(['error' => 'Todos los campos son requeridos'], 400);
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO presupuestos 
+                (comedor_id, anio, mes, presupuesto_asignado, notas, creado_por)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$comedorId, $anio, $mes, $presupuestoAsignado, $notas, $_SESSION['user_id']]);
+            
+            $this->logAction('crear_presupuesto', 'financiero', "Presupuesto creado para comedor {$comedorId}");
+            $this->json(['success' => true, 'message' => 'Presupuesto creado correctamente']);
+            
+        } catch (Exception $e) {
+            $this->json(['error' => 'Error al crear presupuesto: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    private function updateBudgetSpent($comedorId, $fecha, $tipo, $monto) {
+        try {
+            $date = new DateTime($fecha);
+            $anio = $date->format('Y');
+            $mes = $date->format('n');
+            
+            // Check if budget exists
+            $stmt = $this->db->prepare("
+                SELECT id, presupuesto_gastado, presupuesto_asignado 
+                FROM presupuestos 
+                WHERE comedor_id = ? AND anio = ? AND mes = ?
+            ");
+            $stmt->execute([$comedorId, $anio, $mes]);
+            $budget = $stmt->fetch();
+            
+            if ($budget) {
+                // Update spent amount
+                $adjustment = ($tipo === 'egreso') ? $monto : -$monto;
+                $newSpent = $budget['presupuesto_gastado'] + $adjustment;
+                $porcentaje = ($budget['presupuesto_asignado'] > 0) 
+                    ? ($newSpent / $budget['presupuesto_asignado']) * 100 
+                    : 0;
+                
+                $estado = 'activo';
+                if ($porcentaje > 100) {
+                    $estado = 'excedido';
+                } elseif ($porcentaje >= 95) {
+                    $estado = 'cerrado';
+                }
+                
+                $stmt = $this->db->prepare("
+                    UPDATE presupuestos 
+                    SET presupuesto_gastado = ?, porcentaje_ejecutado = ?, estado = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$newSpent, $porcentaje, $estado, $budget['id']]);
+            }
+        } catch (Exception $e) {
+            // Log error but don't fail the transaction
+            error_log("Error updating budget: " . $e->getMessage());
+        }
+    }
+}
